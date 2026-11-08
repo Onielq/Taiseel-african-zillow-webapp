@@ -8,9 +8,16 @@
 | TSL-002 | S2 | Search sort control did not reorder result records | Applied sort order to the filtered rows |
 | TSL-003 | S2 | Save search only showed a temporary informational notice | Added browser-local saved searches, restore and remove actions |
 
-## Not yet verified
+## Latest automated verification
 
-No claim is made that the application is defect-free until the pushed GitHub Actions build and Playwright run complete. Visual QA, keyboard-only testing, a screen-reader pass and isolated Chrome DevTools inspection remain pending unless evidenced by a later CI or browser report.
+- GitHub Actions run [42534805070](https://github.com/Onielq/Taiseel-african-zillow-webapp/actions/runs/42534805070) for commit `27fedd1` completed successfully.
+- TypeScript/Vite production build passed.
+- Playwright: 8 tests passed in 6.1 seconds; no automated case failed.
+- This is coverage of the listed preview flows, not proof that the whole product is defect-free.
+
+## Manual QA still open
+
+Visual QA at real desktop/phone devices, keyboard-only testing, a screen-reader pass and isolated Chrome DevTools inspection remain pending. The DevTools MCP server was configured but not available as a live tool in this session.
 
 ## Product/data limitations (not defects in this preview)
 

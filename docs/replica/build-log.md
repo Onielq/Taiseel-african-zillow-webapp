@@ -28,3 +28,11 @@ Changes are committed to `main` after the atomic Git update. Local build and loc
 - Updated the regression assertion to locate the listing title button by its accessible name.
 
 - Refined the home favourite test one more time to require an exact title-button name, avoiding a partial match against the adjacent "View [listing]" photo action.
+
+## Final verification — 2026-11-09
+
+- GitHub Actions run: 42534805070, commit 27fedd1c742ad5573b88f89782486158dfd50949 — success.
+- TypeScript/Vite production build: passed.
+- Playwright E2E: 8 passed (6.1 seconds); all workflow steps completed successfully.
+- Vercel deployment dpl_4A5m2CPQDVwxXXybvgSXoLp3Lyde is READY, target production, and points to the same main commit.
+- Live visual inspection through Chrome DevTools MCP was not available in this execution session. Do not treat automated E2E as a substitute for manual accessibility and device review.
