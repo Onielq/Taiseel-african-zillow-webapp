@@ -15,3 +15,9 @@
 ### Verification status
 
 Changes are committed to `main` after the atomic Git update. Local build and local Chromium execution are not claimed because this execution environment cannot reach the package registry or GitHub host. The repository CI workflow is the authoritative runtime check and must be inspected after the commit.
+
+## CI selector correction
+
+- First GitHub Actions run: TypeScript/Vite build passed; 5 of 8 Playwright tests passed.
+- Three failures had the same strict-mode locator cause: a header navigation action and a footer navigation action shared the accessible name.
+- Updated those test actions to locate the navigation control inside the banner landmark. This is a test-only correction; the runtime app build was already successful.

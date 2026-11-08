@@ -19,3 +19,5 @@ No claim is made that the application is defect-free until the pushed GitHub Act
 - Browser-local saved data does not sync across devices.
 - Saved searches do not send notifications.
 - Enquiry forms do not contact an agent.
+
+| TSL-004 | S3 | Playwright navigation selectors matched duplicate Saved homes buttons in the header and footer | Scoped navigation actions to the banner/header landmark |

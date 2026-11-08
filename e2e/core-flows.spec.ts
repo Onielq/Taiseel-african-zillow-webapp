@@ -44,7 +44,7 @@ test('search filters narrow the list by neighbourhood', async ({ page }) => {
 test('a home can be saved and revisited', async ({ page }) => {
   await page.goto('/search', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Save home' }).first().click();
-  await page.getByRole('button', { name: /Saved homes/ }).click();
+  await page.getByRole('banner').getByRole('button', { name: 'Saved homes' }).click();
   await expect(page.getByRole('heading', { name: /Places worth keeping/i })).toBeVisible();
   await expect(page.getByText('Quiet family villa with garden')).toBeVisible();
 });
@@ -63,7 +63,7 @@ test('property details explain that the listing is illustrative', async ({ page 
 test('home featured listings can be saved', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Save home' }).first().click();
-  await page.getByRole('button', { name: /Saved homes/ }).click();
+  await page.getByRole('banner').getByRole('button', { name: 'Saved homes' }).click();
   await expect(page.getByRole('heading', { name: 'Quiet family villa with garden' })).toBeVisible();
 });
 
@@ -79,7 +79,7 @@ test('saved searches persist and can be reopened', async ({ page }) => {
   await page.getByRole('button', { name: 'Save search' }).click();
   await expect(page.getByText('Stored on this device.')).toBeVisible();
   await page.reload();
-  await page.getByRole('button', { name: /Saved homes/ }).click();
+  await page.getByRole('banner').getByRole('button', { name: 'Saved homes' }).click();
   await expect(page.getByRole('heading', { name: 'Saved searches' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Kacyiru' })).toBeVisible();
   await page.getByRole('button', { name: 'View results' }).click();
