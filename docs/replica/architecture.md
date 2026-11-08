@@ -11,7 +11,7 @@
 
 ## Visual system
 - White canvas (`#ffffff`) and light surface (`#eeeef0`).
-- Primary text `#111116`, secondary text `#535364), blue action token `#0041d9`.
+- Primary text `#111116`, secondary text `#535364`, blue action token `#0041d9`.
 - Inter is used for body and display. The proprietary Object Sans font from the public reference is not included.
 - 8px base spacing, compact 8px card padding, 12px card radius and 20px tags. Primary controls use a pill treatment.
 - Cards use restrained `0 4px 15px rgba(0,0,0,.15)` elevation.
