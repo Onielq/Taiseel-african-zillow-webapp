@@ -64,7 +64,7 @@ test('home featured listings can be saved', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Save home' }).first().click();
   await page.getByRole('banner').getByRole('button', { name: 'Saved homes' }).click();
-  await expect(page.getByRole('heading', { name: 'Quiet family villa with garden' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Quiet family villa with garden' })).toBeVisible();
 });
 
 test('sort order changes the first search result', async ({ page }) => {
