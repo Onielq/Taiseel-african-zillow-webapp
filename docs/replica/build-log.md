@@ -26,3 +26,5 @@ Changes are committed to `main` after the atomic Git update. Local build and loc
 
 - The remaining Playwright failure was a test expectation mismatch, not a save-state failure: listing titles are intentionally buttons that open detail pages, not heading elements.
 - Updated the regression assertion to locate the listing title button by its accessible name.
+
+- Refined the home favourite test one more time to require an exact title-button name, avoiding a partial match against the adjacent "View [listing]" photo action.
