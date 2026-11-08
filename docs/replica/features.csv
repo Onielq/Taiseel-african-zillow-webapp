@@ -1,0 +1,23 @@
+feature,area,priority,reference,clone,status,notes
+Location-led home search,Discovery,must,public site,yes,implemented,Search by sample city district or neighbourhood text
+Buy rent and land entry points,Discovery,must,public site,yes,implemented,Category selection filters the same sample inventory
+Map and result split,Search,must,help guidance,yes,implemented,Leaflet map and cards use the same filtered rows
+Location filter,Search,must,help guidance,yes,implemented,Case-insensitive local match across title neighbourhood district and address
+Price range filter,Search,must,help guidance,yes,implemented,Illustrative RWF amounts only
+Beds and baths filter,Search,must,help guidance,yes,implemented,Minimum room filters
+Property type filter,Search,should,help guidance,yes,implemented,House villa townhouse apartment and land
+Amenity filters,Search,should,help guidance,yes,implemented,Parking and furnished sample flags
+Sort results,Search,must,help guidance,yes,implemented,Recommended price low high bedrooms and area
+Save homes,Shortlist,must,help guidance,yes,implemented,Browser local storage only
+Save searches,Shortlist,must,help guidance,yes,implemented,Browser local storage with saved filters and reopen action
+Property detail,Listing,must,public site,yes,implemented,Sample facts and explicit verification notice
+Enquiry preview,Listing,should,product pattern,yes,implemented,Local validation only; no outbound transmission
+Mobile list map switch,Search,must,product pattern,yes,implemented,Narrow viewport shows one panel at a time
+Draw custom search boundary,Map,could,help guidance,no,out of scope,Needs geographic UX and reliable boundary geometry
+School and nearby amenities layers,Map,could,help guidance,no,out of scope,Needs validated authoritative geospatial datasets
+Live listing availability,Data,must,product requirement,no,blocked,Requires trusted listing source and freshness metadata
+Verified ownership title and zoning,Trust,must,product requirement,no,blocked,Requires authoritative records and legal data mapping
+Cadastral parcel polygons,Map,must,Taiseel requirement,no,blocked,Needs licensed or public authoritative parcel geometry
+Accounts and cross-device sync,Identity,should,product pattern,no,out of scope,Requires backend identity privacy and authorization
+Saved search alerts,Notifications,should,product pattern,no,out of scope,Requires scheduled backend jobs and notification consent
+Agent messaging and viewing booking,Transactions,should,product pattern,no,out of scope,Needs verified agents identity workflow and backend routing
