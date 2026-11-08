@@ -1,36 +1,39 @@
-# Taiseel component specifications
+# Taiseel component specifications — Zillow-inspired public reference
 
 ## Navigation
-- Header: primary route entry points; buttons expose clear labels; compact navigation at mobile widths.
-- Side rail: persistent desktop shortcuts with current-section styling and accessible names.
-- Footer: repeat navigation and preview-only disclosure.
+- Desktop header is 80px high, white, with left-aligned Buy/Rent/Land navigation, a centered Taiseel wordmark, and saved/account actions on the right.
+- A 72px vertical quick-navigation rail remains visible on desktop and collapses at mobile widths.
+- Active and hover navigation states use the Taiseel accent token.
 
-## Discovery and search
-- Location input: semantic text input with a descriptive accessible label; Enter and Search activate the search route.
-- Category entry: Buy, Rent and Land share one category model.
-- Search toolbar: location, category, price, rooms, property type and amenity filters.
-- Sort control: labelled native select; options reorder the already-filtered sample rows.
-- Map panel: Leaflet/OpenStreetMap with attribution and approximate sample markers. Card results remain the authoritative sample list.
+## Home discovery
+- Full-width photographic hero with a dark readability overlay.
+- Compact, heavy two-line heading in Inter 900, 60px maximum.
+- A long rounded address/location field with a circular search action.
+- Search terms are Rwanda-specific: district, neighbourhood and address.
+- Home recommendation/listing cards begin directly below the hero; sample data disclosures remain visible.
+- No competitor wordmark, proprietary font, photo or copy is included.
 
-## Listing card
-- Image has meaningful alt text.
-- Property title opens the detail screen.
-- Favourite action is a real button; `aria-pressed` reflects state and label changes between Save and Remove.
-- Card exposes a concise accessible name containing title, sample price and location.
+## Search toolbar and results
+- Sticky white toolbar with rounded location input, category, price, beds/baths, type, more filters and save-search action.
+- Filter popovers are white, 12px radius, softly elevated and use blue focus/active states.
+- Desktop map/list is split 56/44; map markers and visible result cards use the same filtered sample rows.
+- Result cards use a compact two-column grid on desktop with a 12px radius and restrained 4px/15px shadow.
+- Results remain independently scrollable from the map.
 
-## Saved items
-- Saved properties and saved searches are grouped separately.
-- Saved searches show key filters and provide View results and Remove actions.
-- Browser-local persistence is explicitly disclosed; no account or cloud sync is implied.
+## Property cards and details
+- Card surfaces are white with 12px radius. Photo corners follow the card shell.
+- Price and title have a stronger Inter hierarchy; factual metadata uses muted secondary text.
+- Save action is a visible, circular, labelled control.
+- The detail screen retains ownership/title/availability verification warnings.
 
-## Detail and enquiry
-- Gallery controls are buttons with labels.
-- Facts and data confidence disclaimers are visible.
-- Enquiry preview is a labelled modal form; submission produces a local confirmation and transmits nothing.
+## Saved items and dialogs
+- Saved homes and saved searches remain separate sections.
+- Contact dialog uses a centered white surface, 12px radius and soft shadow.
+- Enquiry is still local-only and clearly says no message is transmitted.
 
-## Interaction states
-- Buttons provide hover and visible keyboard focus states.
-- Empty result and empty saved states explain how to recover.
-- Search filters update the visible list and map together.
-- At mobile widths the user can switch between list and map.
-- All inventory and prices keep the sample-data disclosure.
+## Tokens and states
+- Canvas #ffffff; surface #eeeef0; text #111116; secondary text #535364; accent #0041d9.
+- 8px spacing base, 8px card padding, 12px cards, 20px tags and pill controls.
+- Default transitions 200ms ease; reduced motion is explicitly supported.
+- Keyboard focus uses a blue double ring. Normal body text retains strong contrast.
+- Inter is used instead of the proprietary Object Sans font named in the extraction.

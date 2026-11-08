@@ -27,7 +27,7 @@ test.afterEach(async ({ page }) => {
 test('home search opens the Kigali map and listing results', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveTitle(/Taiseel/);
-  await expect(page.getByRole('heading', { name: /Find a place to belong in Rwanda/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Homes\. Land\. Projects\. Rwanda\./i })).toBeVisible();
   await page.getByRole('button', { name: 'Search', exact: true }).first().click();
   await expect(page.getByRole('heading', { name: /Find homes in Kigali/i })).toBeVisible();
   await expect(page.getByLabel('Map of sample Kigali properties')).toBeVisible();
