@@ -484,7 +484,10 @@ async function queryArcGisLayer(
   }
 
   if (!response.ok) {
-    throw new Error(`ArcGIS layer request failed (${response.status})`);
+    const diagnostic = await response.text().catch(() => "");
+    throw new Error(
+      `ArcGIS layer request failed (${response.status}): ${diagnostic.slice(0, 360)}`
+    );
   }
 
   const payload = (await response.json()) as UpstreamCollection;
