@@ -569,7 +569,7 @@ const LAND_PRICE_RAMP = [
   65000, "#B7444B"
 ] as const;
 
-function areaFillColorExpression(showPrice: boolean, baseColor: string, isParcel = false) {
+function areaFillColorExpression(showPrice: boolean, baseColor: string) {
   return [
     "case",
     ["boolean", ["feature-state", "selected"], false], "#40B5C9",
@@ -3252,7 +3252,7 @@ export function MapView({
           sourceFeatures = [];
         }
 
-        for (const [index, item] of sourceFeatures.entries()) {
+        for (const item of sourceFeatures) {
           const geometry = item.geometry as Geometry | null;
           if (!geometry || !geometry.type) continue;
           const properties = (item.properties ?? {}) as Record<string, unknown>;
