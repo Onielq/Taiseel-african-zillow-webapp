@@ -467,7 +467,6 @@ async function queryArcGisLayer(
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
   const fetchPromise = fetch(upstreamUrl, {
     headers: { Accept: "application/json" },
-    next: { revalidate: revalidateSeconds },
     signal: controller.signal
   });
   const timeoutPromise = new Promise<never>((_resolve, reject) => {
@@ -696,7 +695,7 @@ async function getAdministrativeAreas(
   level: AreaLevel,
   bounds: Bounds,
   sourceFilter?: "kigali" | "bugesera"
-): Promise<NextResponse> {
+): Promise<Response> {
   const sources = [
     {
       id: "kigali" as const,
@@ -1029,7 +1028,7 @@ type ParcelGeoJsonFeatureCollection = {
 };
 
 type ParcelFallbackOutcome = {
-  response: NextResponse | null;
+  response: Response | null;
   status: "used" | "skipped" | "failed";
   reason?: string;
 };
@@ -1153,7 +1152,7 @@ async function getParcels(
   bounds: Bounds,
   sourceFilter: "kigali" | "bugesera" | undefined,
   allowVercelFallback: boolean
-): Promise<NextResponse> {
+): Promise<Response> {
   // These providers publish individual parcel polygons. Do not replace a
   // missing cadastral polygon with a road edge, image trace, or zoning polygon.
   const parcelProviders: ParcelProvider[] = [
