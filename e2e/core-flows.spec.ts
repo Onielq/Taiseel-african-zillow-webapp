@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
 
 const pageErrors = new WeakMap<Page, { console: string[]; server: string[] }>();
 
@@ -166,4 +167,34 @@ test('the search page preserves the map-first mobile scaffold', async ({ page })
   ]);
   expect(widths[0]).toBeGreaterThan(0);
   expect(widths[1]).toBeGreaterThan(0);
+});
+
+test('capture reference-fidelity screenshots at desktop, tablet and mobile widths', async ({ page }) => {
+  const output = 'test-results/visual-review';
+  await mkdir(output, { recursive: true });
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const home = page.frameLocator('iframe[title="Taiseel home"]');
+  await expect(home.locator('.hero-title')).toBeVisible();
+  await page.screenshot({ path: output + '/home-desktop-1440.png', fullPage: true });
+
+  await page.goto('/search', { waitUntil: 'domcontentloaded' });
+  const search = page.frameLocator('iframe[title="Taiseel search"]');
+  const map = search.frameLocator('iframe[title="Taiseel Rwanda Land Intelligence map"]');
+  await expect(map.locator('.maplibre-mount')).toBeVisible();
+  await expect(map.locator('.map-engine-status-dot.ready')).toBeVisible({ timeout: 30000 });
+  await page.screenshot({ path: output + '/search-desktop-1440.png', fullPage: true });
+  await search.locator('#priceBtn').click();
+  await expect(search.locator('#pricePanel')).toHaveClass(/open/);
+  await page.screenshot({ path: output + '/search-price-filter-1440.png', fullPage: true });
+  await search.locator('#priceBtn').click();
+
+  await page.setViewportSize({ width: 768, height: 900 });
+  await page.waitForTimeout(350);
+  await page.screenshot({ path: output + '/search-tablet-768.png', fullPage: true });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(350);
+  await page.screenshot({ path: output + '/search-mobile-390.png', fullPage: true });
 });
