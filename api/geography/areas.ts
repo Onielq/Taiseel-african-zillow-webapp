@@ -1,5 +1,5 @@
-import { DISTRICT_LAND_PRICE_BENCHMARKS, LAND_PRICE_BENCHMARK_SOURCE } from "../../src/data/land-price-benchmarks";
-import { LAND_PRICE_TRANSACTION_ROWS } from "../../src/data/land-price-transaction.generated";
+import { DISTRICT_LAND_PRICE_BENCHMARKS, LAND_PRICE_BENCHMARK_SOURCE } from "../data/land-price-benchmarks.js";
+import { LAND_PRICE_TRANSACTION_ROWS } from "../data/land-price-transaction.generated.js";
 
 const KIGALI_MASTERPLAN_MAP_SERVER =
   "https://masterplan.kigalicity.gov.rw/server/rest/services/Masterplan2020/Masterplan2020_22Apr2026/MapServer";
