@@ -38,7 +38,7 @@ test('home follows the supplied landing-page structure and searches Rwanda', asy
     home.getByRole('button', { name: 'Search' }).click()
   ]);
   const search = page.frameLocator('iframe[title="Taiseel search"]');
-  await expect(search.locator('#map')).toBeVisible();
+  await expect(search.locator('#mapFrame')).toBeVisible();
   await expect(search.locator('.results-panel')).toBeVisible();
   await expect(search.locator('#searchInput')).toHaveValue('Kacyiru');
 });
@@ -46,7 +46,7 @@ test('home follows the supplied landing-page structure and searches Rwanda', asy
 test('Rwanda search filters cards by neighbourhood', async ({ page }) => {
   await page.goto('/search', { waitUntil: 'domcontentloaded' });
   const search = page.frameLocator('iframe[title="Taiseel search"]');
-  await expect(search.locator('#map')).toBeVisible();
+  await expect(search.locator('#mapFrame')).toBeVisible();
   await search.locator('#searchInput').fill('Kacyiru');
   await expect(search.locator('.listing-card:not([hidden])')).toHaveCount(1);
   await expect(search.locator('[data-property-id="kacyiru-apartment"]')).toBeVisible();
@@ -127,4 +127,43 @@ test('the Land category returns the two Kigali plot examples', async ({ page }) 
   await expect(search.locator('.listing-card:not([hidden])')).toHaveCount(2);
   await expect(search.locator('[data-property-id="kagarama-land"]')).toBeVisible();
   await expect(search.locator('[data-property-id="gahanga-land"]')).toBeVisible();
+});
+
+test('the Land Intelligence MapLibre map mounts inside the reference map proportions', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/search', { waitUntil: 'domcontentloaded' });
+  const search = page.frameLocator('iframe[title="Taiseel search"]');
+  await expect(search.locator('#mapFrame')).toBeVisible();
+  const map = search.frameLocator('iframe[title="Taiseel Rwanda Land Intelligence map"]');
+  await expect(map.locator('.maplibre-mount')).toBeVisible();
+  await expect(map.locator('.maplibregl-canvas')).toBeVisible();
+  await expect(map.locator('.map-engine-status-dot.ready')).toBeVisible({ timeout: 30000 });
+  const ratio = await search.locator('.map-wrap').evaluate(element => element.getBoundingClientRect().width / window.innerWidth);
+  expect(ratio).toBeGreaterThan(0.55);
+  expect(ratio).toBeLessThan(0.65);
+  await search.locator('#schoolsBtn').click();
+  await expect(search.locator('#mapLayerPanel')).toBeVisible();
+  await search.locator('input[data-map-layer="healthEducation"]').check();
+  await search.locator('#drawBtn').click();
+  await expect(map.locator('.map-draw-hint')).toBeVisible();
+  await search.locator('#drawBtn').click();
+  await expect(map.locator('.map-draw-hint')).toHaveCount(0);
+  await search.locator('#mapTypeSelect').selectOption('satellite');
+  await expect(map.locator('.maplibregl-canvas')).toBeVisible();
+});
+
+test('the search page preserves the map-first mobile scaffold', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/search', { waitUntil: 'domcontentloaded' });
+  const search = page.frameLocator('iframe[title="Taiseel search"]');
+  const map = search.frameLocator('iframe[title="Taiseel Rwanda Land Intelligence map"]');
+  await expect(search.locator('.map-wrap')).toBeVisible();
+  await expect(map.locator('.maplibre-mount')).toBeVisible();
+  await expect(search.locator('.results-panel')).toBeVisible();
+  const widths = await Promise.all([
+    search.locator('.map-wrap').evaluate(element => element.getBoundingClientRect().width),
+    search.locator('.results-panel').evaluate(element => element.getBoundingClientRect().width)
+  ]);
+  expect(widths[0]).toBeGreaterThan(0);
+  expect(widths[1]).toBeGreaterThan(0);
 });
