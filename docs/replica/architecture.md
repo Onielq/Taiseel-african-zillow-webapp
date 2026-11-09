@@ -30,7 +30,7 @@
 
 ## API deployment distinction
 
-The Vite development server does not implement serverless `/api` routes. Local browser tests stub the three geography endpoints using small synthetic polygons. The target Vercel project serves the standard Web Request/Response handlers under root `api/`; a preview deployment must verify those routes against the actual external GIS sources before merge.
+The Vite development server uses a small middleware adapter to execute the same Web Request/Response handlers in `api/geography/` via `ssrLoadModule`. The `predev` script generates the API-compatible JavaScript price modules and MapLibre worker assets. Playwright intercepts those endpoints with explicitly synthetic fixtures for deterministic interaction tests. Vercel serves the standard handlers from root `api/`.
 
 ## Trust boundaries
 
