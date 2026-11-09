@@ -641,7 +641,7 @@ body {
           <div class="range-thumb" id="thumbMin" style="left:0%"></div>
           <div class="range-thumb" id="thumbMax" style="left:100%"></div>
         </div>
-        <div class="range-labels"><span>$0</span><span>$10M+</span></div>
+        <div class="range-labels"><span>RWF 0</span><span>RWF 1B+</span></div>
         <div class="price-inputs">
           <div class="price-input-wrap">
             <label>Min</label>
@@ -756,13 +756,13 @@ body {
     <div class="dropdown-panel align-right mf-panel" id="mfPanel" style="max-height:none;overflow:visible;padding-bottom:0">
       <div style="padding:16px;max-height:400px;overflow-y:auto">
         <div class="mf-section">
-          <div class="mf-section-title">Max HOA <span style="font-weight:400;color:var(--gray-mid)">?</span></div>
+          <div class="mf-section-title">Max service charge <span style="font-weight:400;color:var(--gray-mid)">?</span></div>
           <select class="mf-select" id="hoaSelect">
-            <option>Any</option><option>No HOA Fee</option><option>$50/month</option>
-            <option>$100/month</option><option>$200/month</option><option>$300/month</option>
-            <option>$400/month</option><option>$500/month</option><option>$600/month</option>
-            <option>$700/month</option><option>$800/month</option><option>$900/month</option>
-            <option>$1000/month</option><option>$1500/month</option><option>$2000/month</option>
+            <option>Any</option><option>No HOA Fee</option><option>RWF 50K/month</option>
+            <option>RWF 100K/month</option><option>RWF 200K/month</option><option>RWF 300K/month</option>
+            <option>RWF 400K/month</option><option>RWF 500K/month</option><option>RWF 600K/month</option>
+            <option>RWF 700K/month</option><option>RWF 800K/month</option><option>RWF 900K/month</option>
+            <option>RWF 1M/month</option><option>RWF 1.5M/month</option><option>RWF 2M/month</option>
           </select>
         </div>
         <div class="mf-section">
@@ -962,6 +962,28 @@ body {
           <div class="listing-more"><div class="listing-price">RWF 1,450,000 / month</div><div class="listing-more-icon">···</div></div>
           <div class="listing-meta">2 bds | 2 ba | 105 m² | Apartment for rent</div>
           <div class="listing-addr">Kicukiro Centre, Kicukiro, Kigali</div>
+        </div>
+      </div>
+      <div class="listing-card" data-property-id="kagarama-land" data-category="Land" data-price="72000000" data-beds="0" data-baths="0" data-type="Land" data-area="0" tabindex="0" role="link">
+        <div class="listing-img" style="background:#b9c6b0"><img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=900&q=82" alt="Illustrative land parcel" loading="lazy">
+          <div class="listing-badge">Land</div>
+          <button type="button" class="listing-heart" aria-label="Save property"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+        </div>
+        <div class="listing-info">
+          <div class="listing-more"><div class="listing-price">RWF 72,000,000</div><div class="listing-more-icon">···</div></div>
+          <div class="listing-meta">540 m² plot | Land for sale</div>
+          <div class="listing-addr">Kagarama, Kicukiro, Kigali</div>
+        </div>
+      </div>
+      <div class="listing-card" data-property-id="gahanga-land" data-category="Land" data-price="38500000" data-beds="0" data-baths="0" data-type="Land" data-area="0" tabindex="0" role="link">
+        <div class="listing-img" style="background:#b9c6b0"><img src="https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=900&q=82" alt="Illustrative land parcel" loading="lazy">
+          <div class="listing-badge">Land</div>
+          <button type="button" class="listing-heart" aria-label="Save property"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+        </div>
+        <div class="listing-info">
+          <div class="listing-more"><div class="listing-price">RWF 38,500,000</div><div class="listing-more-icon">···</div></div>
+          <div class="listing-meta">420 m² plot | Land for sale</div>
+          <div class="listing-addr">Gahanga, Kicukiro, Kigali</div>
         </div>
       </div>
     </div>
@@ -1599,6 +1621,8 @@ document.addEventListener('DOMContentLoaded', function () {
    const currentCategory = selected === 'For rent' ? 'Rent' : category === 'Land' ? 'Land' : 'Buy';
    const min = activeMinimum(), max = activeMaximum();
    const minBeds = activePillValue('bedPills'), minBaths = activePillValue('bathPills');
+   const selectedTypes = [...document.querySelectorAll('.pt-type:checked')].map(node => node.value);
+   const typeFor = value => value === 'Land' ? 'Lots/Land' : value === 'Townhouse' ? 'Townhomes' : value === 'Apartment' ? 'Apartments' : 'Houses';
    let count = 0;
    cards.forEach(card => {
      const text = card.textContent.toLowerCase();
@@ -1608,7 +1632,8 @@ document.addEventListener('DOMContentLoaded', function () {
      const priceMatch = price >= min && price <= max;
      const bedMatch = Number(card.dataset.beds || 0) >= minBeds;
      const bathMatch = Number(card.dataset.baths || 0) >= minBaths;
-     const visible = queryMatch && categoryMatch && priceMatch && bedMatch && bathMatch;
+     const typeMatch = selectedTypes.length === 0 || selectedTypes.includes(typeFor(card.dataset.type || 'House'));
+     const visible = queryMatch && categoryMatch && priceMatch && bedMatch && bathMatch && typeMatch;
      card.hidden = !visible;
      if (visible) count++;
    });
@@ -1690,3 +1715,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 </body>
+</html>
