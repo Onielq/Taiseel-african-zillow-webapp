@@ -5,16 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Taiseel — Rwanda Property Search</title>
 <!-- ── LEAFLET CSS: primary jsDelivr, fallback unpkg ── -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"
-  onerror="this.onerror=null;this.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'"/>
+
 
 <!-- ── LEAFLET JS: synchronous so L is ready before DOMContentLoaded ── -->
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
-<script>if(typeof L==='undefined'){document.write('<scr'+'ipt src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/scr'+'ipt>')}</script>
+
+
 
 <!-- ── TURF JS: same dual-CDN pattern ── -->
-<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
-<script>if(typeof turf==='undefined'){document.write('<scr'+'ipt src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"><\/scr'+'ipt>')}</script>
+
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -562,6 +561,61 @@ body {
  .listing-img { aspect-ratio:16/9; }
  .map-wrap { height:40vh; min-height:270px; }
 }
+
+#mapFrame { position:absolute; inset:0; width:100%; height:100%; border:0; display:block; background:#e9eeeb; z-index:1; }
+.map-wrap { background:#e9eeeb; }
+.map-loading-skeleton {
+  position:absolute; inset:0; z-index:900; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg,#eef2ef 0%,#e7ece8 52%,#eff2ef 100%);
+  transition:opacity .18s ease;
+}
+.map-loading-skeleton.hidden { opacity:0; pointer-events:none; }
+.map-skeleton-toolbar { position:absolute; top:12px; right:12px; display:flex; gap:8px; }
+.map-skeleton-toolbar span { width:88px; height:32px; border-radius:4px; background:rgba(255,255,255,.85); border:1px solid #dfe5e1; }
+.map-skeleton-toolbar span:last-child { width:54px; }
+.map-skeleton-country {
+  position:absolute; width:34%; height:60%; left:34%; top:18%;
+  background:linear-gradient(110deg,#dfe7e2 20%,#edf1ee 40%,#dfe7e2 60%);
+  clip-path:polygon(40% 0,63% 5%,76% 20%,91% 25%,100% 45%,87% 57%,82% 74%,66% 84%,57% 100%,42% 92%,30% 76%,20% 74%,12% 54%,0 39%,14% 24%,19% 9%);
+  opacity:.9;
+  animation:mapSkeletonPulse 1.4s ease-in-out infinite;
+}
+.map-skeleton-outline {
+  position:absolute; border:1px solid rgba(115,143,126,.28);
+  border-radius:46% 52% 50% 44%;
+  transform:rotate(-12deg);
+  pointer-events:none;
+}
+.outline-one { width:22%; height:38%; left:40%; top:27%; }
+.outline-two { width:16%; height:28%; left:45%; top:34%; }
+.map-skeleton-label {
+  position:absolute; left:50%; bottom:22px; transform:translateX(-50%);
+  padding:7px 12px; border-radius:4px; background:rgba(255,255,255,.91);
+  border:1px solid #dfe5e1; color:#68756d; font-size:11px; white-space:nowrap;
+}
+@keyframes mapSkeletonPulse { 0%,100%{opacity:.62} 50%{opacity:1} }
+.map-float-top { z-index:1002; }
+.map-layer-panel {
+  position:absolute; top:38px; right:72px; z-index:1100; width:190px;
+  padding:10px 12px; border:1px solid var(--gray-border); border-radius:4px;
+  background:#fff; box-shadow:0 2px 10px rgba(0,0,0,.16);
+  display:flex; flex-direction:column; gap:9px;
+}
+.map-layer-panel[hidden] { display:none; }
+.map-layer-panel-title { color:var(--text); font-size:12px; font-weight:700; padding:1px 0 4px; }
+.map-layer-panel label { display:flex; align-items:center; gap:8px; color:var(--text); font-size:12px; cursor:pointer; }
+.map-layer-panel input { accent-color:#006aff; width:14px; height:14px; margin:0; }
+.map-layer-panel-divider { height:1px; margin:2px 0; background:var(--gray-border); }
+.map-float-btn.active { border-color:#9bc9ef; color:#0051cc; background:#f4f9ff; }
+#removeBoundaryBtn[hidden] { display:none; }
+#drawBtn[aria-pressed="true"] { border-color:#006aff; background:#eef6ff; color:#0051cc; }
+#map-loader .loader-spinner { display:none; }
+@media (max-width:760px) {
+ .map-loading-skeleton { min-height:270px; }
+ .map-layer-panel { right:8px; top:42px; }
+ .map-skeleton-label { max-width:calc(100% - 24px); font-size:10px; }
+}
 </style>
 </head>
 <body>
@@ -836,44 +890,44 @@ body {
 
   <!-- MAP -->
   <div class="map-wrap">
-    <div id="map"></div>
-    <div id="map-loader"><div class="loader-spinner"></div><p>Loading Rwanda districts…</p></div>
-    <div class="zoom-tooltip" id="zoomTooltip">Zoom in to explore districts</div>
-    <div class="draw-mode-banner" id="drawBanner">✏️ Click to draw. Double-click to finish.</div>
+    <iframe id="mapFrame" title="Taiseel Rwanda Land Intelligence map" src="/map.html" loading="eager"></iframe>
+    <div id="map-loader" class="map-loading-skeleton" aria-live="polite">
+      <div class="map-skeleton-toolbar"><span></span><span></span></div>
+      <div class="map-skeleton-country"></div>
+      <div class="map-skeleton-outline outline-one"></div>
+      <div class="map-skeleton-outline outline-two"></div>
+      <div class="map-skeleton-label">Loading Rwanda map and published boundaries…</div>
+    </div>
+    <div class="draw-mode-banner" id="drawBanner">Click to draw. Double-click to finish.</div>
     <div class="map-float-top">
-      <button class="map-float-btn" id="schoolsBtn" onclick="toggleSchools()">
+      <button class="map-float-btn" id="schoolsBtn" type="button" aria-expanded="false" onclick="window.toggleMapLayerMenu()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20v-8l10-7 10 7v8"/><rect x="7" y="14" width="10" height="6"/><path d="M12 14v6"/></svg>
         Schools
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
-      <button class="map-float-btn" id="removeBoundaryBtn" style="display:none" onclick="removeBoundary()">
+      <div class="map-layer-panel" id="mapLayerPanel" hidden>
+        <div class="map-layer-panel-title">Map layers</div>
+        <label><input type="checkbox" data-map-layer="landmarks" checked>Landmarks</label>
+        <label><input type="checkbox" data-map-layer="healthEducation">Schools &amp; health</label>
+        <label><input type="checkbox" data-map-layer="transportation">Transportation</label>
+        <label><input type="checkbox" data-map-layer="nature">Nature</label>
+        <div class="map-layer-panel-divider"></div>
+        <label><input type="checkbox" id="mapZoningToggle">Planning / zoning</label>
+      </div>
+      <button class="map-float-btn" id="removeBoundaryBtn" type="button" hidden onclick="window.removeMapBoundary()">
         Remove Boundary ✕
       </button>
-      <button class="map-float-btn" id="drawBtn" onclick="toggleDraw()">
+      <button class="map-float-btn" id="drawBtn" type="button" aria-pressed="false" onclick="window.toggleMapDraw()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
         Draw
       </button>
     </div>
     <div class="map-dropdown">
-      <select id="mapTypeSelect" onchange="switchTile(this.value)">
-        <option value="osm">Map</option>
+      <select id="mapTypeSelect" aria-label="Map style" onchange="window.switchMapBasemap(this.value)">
+        <option value="map">Map</option>
         <option value="satellite">Satellite</option>
-        <option value="topo">Topo</option>
+        <option value="hybrid">Hybrid</option>
       </select>
-    </div>
-
-    <!-- MAP ATTRIBUTION -->
-    <div class="map-attribution">
-      <div class="map-attr-left">
-        <a>Keyboard shortcuts</a>
-      </div>
-      <div class="map-attr-right">
-        <span class="map-attr-copy">© OpenStreetMap contributors · CARTO</span>
-        <span class="map-attr-sep">|</span>
-        <a>Terms of Use</a>
-        <span class="map-attr-sep">|</span>
-        <a>Report a map error</a>
-      </div>
     </div>
   </div>
 
@@ -1379,7 +1433,8 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('removeBoundaryBtn').style.display = 'none';
   };
 
-  /* ── MAP TILE SWITCH ─────────────────────────────────────── */
+    if (false) {
+/* ── MAP TILE SWITCH ─────────────────────────────────────── */
   // Lazy-init: tiles are created AFTER L is confirmed available,
   // not at const declaration time (which caused "L is not defined")
   let TILE_LAYERS = null;
@@ -1589,6 +1644,8 @@ document.addEventListener("DOMContentLoaded", function () {
     map.getContainer().style.cursor = '';
   });
 
+  }
+
 });
 </script>
 
@@ -1713,6 +1770,97 @@ document.addEventListener('DOMContentLoaded', function () {
  });
 })();
 });
+</script>
+
+<script>
+(function () {
+ const frame = document.getElementById('mapFrame');
+ const loader = document.getElementById('map-loader');
+ const drawButton = document.getElementById('drawBtn');
+ const removeButton = document.getElementById('removeBoundaryBtn');
+ const drawBanner = document.getElementById('drawBanner');
+ const schoolsButton = document.getElementById('schoolsBtn');
+ const layerPanel = document.getElementById('mapLayerPanel');
+ const zoningToggle = document.getElementById('mapZoningToggle');
+ let mapEngineReady = false;
+ let drawActive = false;
+ const pending = [];
+ const post = payload => {
+   if (!frame || !frame.contentWindow) return;
+   const message = { source:'taiseel-map-controls', ...payload };
+   if (!mapEngineReady) pending.push(message);
+   else frame.contentWindow.postMessage(message, window.location.origin);
+ };
+ const flushPending = () => {
+   while (pending.length && frame && frame.contentWindow) {
+     frame.contentWindow.postMessage(pending.shift(), window.location.origin);
+   }
+ };
+ window.switchMapBasemap = value => {
+   const mode = value === 'satellite' ? 'satellite' : value === 'hybrid' ? 'hybrid' : 'map';
+   post({ type:'basemap', value:mode });
+ };
+ window.toggleMapLayerMenu = () => {
+   const open = layerPanel.hidden;
+   layerPanel.hidden = !open;
+   schoolsButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+ };
+ window.toggleMapDraw = () => {
+   drawActive = !drawActive;
+   post({ type:'draw', enabled:drawActive });
+   drawButton.setAttribute('aria-pressed', drawActive ? 'true' : 'false');
+   drawButton.classList.toggle('active', drawActive);
+   drawBanner.classList.toggle('active', drawActive);
+ };
+ window.removeMapBoundary = () => {
+   post({ type:'remove-boundary' });
+   removeButton.hidden = true;
+   drawActive = false;
+   drawButton.setAttribute('aria-pressed','false');
+   drawButton.classList.remove('active');
+   drawBanner.classList.remove('active');
+ };
+ document.querySelectorAll('[data-map-layer]').forEach(input => {
+   input.addEventListener('change', () => {
+     post({ type:'layer', category:input.dataset.mapLayer, enabled:input.checked });
+   });
+ });
+ if (zoningToggle) zoningToggle.addEventListener('change', () => {
+   post({ type:'zoning', enabled:zoningToggle.checked });
+ });
+ document.addEventListener('click', event => {
+   if (layerPanel && !layerPanel.hidden && !layerPanel.contains(event.target) && !schoolsButton.contains(event.target)) {
+     layerPanel.hidden = true;
+     schoolsButton.setAttribute('aria-expanded','false');
+   }
+ });
+ window.addEventListener('message', event => {
+   if (event.origin !== window.location.origin || !event.data || event.data.source !== 'taiseel-map-engine') return;
+   const message = event.data;
+   if (message.type === 'basemap-status' && message.status === 'ready') {
+     mapEngineReady = true;
+     if (loader) { loader.classList.add('hidden'); setTimeout(() => { loader.style.display='none'; }, 220); }
+     flushPending();
+   } else if (message.type === 'basemap-status' && message.status === 'error') {
+     if (loader) { loader.classList.add('hidden'); loader.style.display='none'; }
+     mapEngineReady = true;
+     flushPending();
+   } else if (message.type === 'draw-state') {
+     drawActive = Boolean(message.enabled);
+     drawButton.setAttribute('aria-pressed', drawActive ? 'true' : 'false');
+     drawButton.classList.toggle('active', drawActive);
+     drawBanner.classList.toggle('active', drawActive);
+   } else if (message.type === 'draw-complete') {
+     drawActive = false;
+     drawButton.setAttribute('aria-pressed','false');
+     drawButton.classList.remove('active');
+     drawBanner.classList.remove('active');
+     removeButton.hidden = false;
+   } else if (message.type === 'boundary-removed') {
+     removeButton.hidden = true;
+   }
+ });
+})();
 </script>
 </body>
 </html>
