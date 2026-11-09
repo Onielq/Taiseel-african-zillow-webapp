@@ -100,6 +100,16 @@ test.afterEach(async ({ page }) => {
   expect(errors?.console ?? []).toEqual([]);
 });
 
+
+test('local Vite server routes geography requests to the Web API handlers', async ({ request }) => {
+  const response = await request.get('/api/geography/areas?level=unsupported');
+  expect(response.status()).toBe(400);
+  expect(response.headers()['content-type']).toContain('application/json');
+  await expect(response.json()).resolves.toMatchObject({
+    error: 'level must be district, sector, cell, village, or parcel'
+  });
+});
+
 test('home follows the supplied landing-page structure and searches Rwanda', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveTitle(/Taiseel/);
@@ -259,6 +269,7 @@ test('capture reference-fidelity screenshots at desktop, tablet and mobile width
   const map = search.frameLocator('iframe[title="Taiseel Rwanda Land Intelligence map"]');
   await expect(map.locator('.maplibre-mount')).toBeVisible();
   await expect(map.locator('.map-engine-status-dot.ready')).toBeVisible({ timeout: 30000 });
+  await expect(search.locator('#map-loader')).toBeHidden();
   await page.screenshot({ path: output + '/search-desktop-1440.png', fullPage: true });
   await search.locator('#priceBtn').click();
   await expect(search.locator('#pricePanel')).toHaveClass(/open/);
