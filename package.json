@@ -9,8 +9,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "postinstall": "node scripts/copy-maplibre-worker.mjs",
-    "prebuild": "node scripts/copy-maplibre-worker.mjs"
+    "postinstall": "node scripts/copy-maplibre-worker.mjs && node scripts/generate-api-land-price-data.mjs",
+    "prebuild": "node scripts/copy-maplibre-worker.mjs && node scripts/generate-api-land-price-data.mjs"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
