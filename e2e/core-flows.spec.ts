@@ -4,11 +4,86 @@ import { mkdir } from 'node:fs/promises';
 const pageErrors = new WeakMap<Page, { console: string[]; server: string[] }>();
 
 test.beforeEach(async ({ page }) => {
+  // The Vite preview serves the frontend only. Stub the same-origin Vercel
+  // geography API with small synthetic polygons so the map interaction tests
+  // exercise the real MapLibre rendering without contacting public GIS servers.
+  await page.route('**/api/geography/areas**', async route => {
+    const requestUrl = new URL(route.request().url());
+    const level = requestUrl.searchParams.get('level') || 'district';
+    const source = requestUrl.searchParams.get('source') || 'kigali';
+    const district = source === 'bugesera' ? 'Bugesera' : 'Gasabo';
+    const bounds: Record<string, [number, number, number, number]> = {
+      district: source === 'bugesera' ? [30.00, -2.34, 30.28, -2.12] : [30.00, -2.14, 30.28, -1.90],
+      sector: [30.08, -2.18, 30.20, -2.02],
+      cell: [30.10, -2.15, 30.16, -2.07],
+      village: [30.12, -2.13, 30.15, -2.09],
+      parcel: [30.128, -2.108, 30.132, -2.104]
+    };
+    const [west, south, east, north] = bounds[level] || bounds.district;
+    const id = source + '-' + level + '-e2e';
+    const properties: Record<string, unknown> = {
+      map_feature_id: id,
+      level,
+      province: source === 'bugesera' ? 'Eastern Province' : 'Kigali City',
+      district,
+      district_id: district.toLowerCase(),
+      sector: 'Kacyiru',
+      sector_id: 'kacyiru',
+      cell: 'Kamatamu',
+      cell_id: 'kamatamu',
+      village: 'Kamatamu A',
+      village_id: 'kamatamu-a',
+      upi: 'E2E-UPI-0001',
+      parcel_number: '01',
+      parcel_size_m2: 500,
+      average_land_price_per_m2: source === 'bugesera' ? 4038 : 36103,
+      average_transaction_price_per_m2: source === 'bugesera' ? 4038 : 36103,
+      average_land_price_source: 'E2E fixture only',
+      parcel_price_type: 'calculated-asking-price',
+      source_label: 'E2E synthetic fixture only',
+      source_type: level === 'parcel' ? 'cadastral-parcel' : 'administrative-boundary'
+    };
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/geo+json',
+      body: JSON.stringify({
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          id,
+          properties,
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[
+              [west, south], [east, south], [east, north],
+              [west, north], [west, south]
+            ]]
+          }
+        }]
+      })
+    });
+  });
+  await page.route('**/api/geography/places**', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/geo+json',
+      body: JSON.stringify({ type: 'FeatureCollection', features: [] })
+    });
+  });
+  await page.route('**/api/geography/zoning**', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/geo+json',
+      body: JSON.stringify({ type: 'FeatureCollection', features: [] })
+    });
+  });
+
   const errors = { console: [] as string[], server: [] as string[] };
   pageErrors.set(page, errors);
   page.on('console', message => {
     const location = message.location().url;
-    if (message.type() === 'error' && location.startsWith('http://127.0.0.1:4173')) {
+    const isKnownHeadlessWebGlWarning = message.text().includes('GL Driver Message (OpenGL, Performance');
+    if (message.type() === 'error' && location.startsWith('http://127.0.0.1:4173') && !isKnownHeadlessWebGlWarning) {
       errors.console.push(message.text());
     }
   });
