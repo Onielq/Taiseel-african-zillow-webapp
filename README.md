@@ -1,22 +1,32 @@
 # Taiseel — Rwanda Property Search
 
-A Rwanda-first property discovery preview built with original React, TypeScript and Taiseel branding.
+A Rwanda-first property discovery preview using the supplied Taiseel HTML prototypes as the page-level source of truth.
 
-## What works
-- Home discovery for Buy, Rent and Land.
-- Neighbourhood search and category, price, beds, baths, property type and amenity filters.
-- Split Leaflet map and listing results.
-- Sorting by price, bedrooms and floor/plot area.
-- Property detail pages with photo gallery, core facts and a local enquiry preview.
-- Browser-local saved homes and saved searches, including reopening and removing saved filters.
-- Responsive desktop and mobile layouts with a map/list switch.
+## Screens
 
-## Visual direction
-The current interface follows the user-supplied public Zillow screenshot and design-token reference for broad layout and interaction patterns: a centered header wordmark, vertical navigation rail, photo-led hero, location-first rounded search, sticky map/list filter toolbar, compact listing cards, Inter typography, a white canvas, blue interactive accent, 8px spacing rhythm and reduced-motion support. Taiseel keeps its own name, original copy and original visual assets. See `docs/replica/design/` and `docs/replica/reference-screenshots.md`.
+- `/` renders the supplied landing-page structure from `public/zillow-clean.html`.
+- `/search` renders the supplied Rwanda map-and-results structure from `public/zillow-rwanda-v3.html`.
+- `/saved` and `/property/:id` use the existing React screens for saved homes, saved searches and property details.
 
-**Demo data notice:** all listing records, prices, addresses, images, amenities and coordinates in this preview are illustrative. They are not live listings, verified offers, valuations, market statistics or cadastral parcel boundaries. No production property database is connected.
+The two prototype pages remain separate HTML files. The React shell routes to them without rebuilding their layout in a different component system.
+
+## What works in this preview
+
+- The original landing-page sequence: navigation rail, top navigation, photo hero, location search, recommendations, budget section, feature cards and footer.
+- The original Rwanda search sequence: top navigation, filter bar, district map, right-side two-column listing cards and map utilities.
+- Location, category, price, beds, baths and property-type filtering, plus result sorting.
+- Rwanda district polygon hover, selection and zoom behavior; Map, Satellite and Topo layers; draw-boundary control.
+- Eight illustrative sample listings across homes, rentals and land.
+- Saved homes and saved searches stored in browser local storage.
+- Listing-to-detail navigation using the existing React property records.
+- Responsive home and map/results layouts.
+
+## Demo data notice
+
+Listing records, prices, addresses, photos and coordinates are illustrative. They are not live listings, verified offers, valuations, market statistics or cadastral parcel boundaries. The district outlines are administrative demo geometry, not individual parcel boundaries. No production property database is connected.
 
 ## Stack and commands
+
 React 19, TypeScript, Vite, Leaflet, React Leaflet and Playwright Test.
 
 ```bash
@@ -27,16 +37,16 @@ npx playwright install --with-deps chromium
 npm run test:e2e
 ```
 
-Playwright Test is already declared in devDependencies; CI installs Chromium and runs the browser suite.
+## Source and adaptation boundary
 
-## Clean-room boundary
-Public product materials and user-supplied screenshots inform broad interaction patterns only. No competitor source code, logo, proprietary copy, screenshots, photos, private endpoints or scraped listings are included. The user-owned screenshot archive is used as visual evidence and is not bundled into the running app. Inter is used instead of the proprietary Object Sans font named in the reference extraction. Keep the preview disclosure until trusted, publishable Rwanda inventory and field-level provenance are connected.
+The page structure is ported from the two user-supplied files in the source repository Onielq/Taiseel-african-zillow-: zillow-clean.html and zillow-rwanda-v3.html. Taiseel naming, Rwanda-specific labels, listing data, local navigation and the cyan boundary treatment are retained or adapted for this project. The supplied demo files are stored under public/ and are loaded as the actual home and search experiences.
 
 ## Architecture and trust
-- One in-repository sample dataset powers cards, search, map markers, details and saved-property links.
-- Local storage is limited to saved sample homes and saved sample searches.
-- Enquiry forms validate locally and do not transmit personal information.
-- Production inventory requires a trusted Rwanda listing source and field-level provenance before sample records are replaced.
-- Availability, legal ownership, title, boundaries, zoning, price and agent identity require independent verification.
 
-See `docs/replica/` for the screen map, flows, feature matrix, architecture, design tokens, reference screenshots and testing plan.
+- The two HTML screens are rendered in same-origin iframes by the React route shell.
+- The existing React sample dataset powers the saved and detail routes; card IDs and key details in the map demo are aligned with those records.
+- Local storage is limited to illustrative saved homes and saved searches.
+- The enquiry screen is a local-only preview and does not transmit personal information.
+- Availability, legal ownership, title, exact parcel boundaries, zoning, price and agent identity require independent verification.
+
+See docs/replica/ for architecture, design notes, reference mapping and verification history.
