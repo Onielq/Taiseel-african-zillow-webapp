@@ -113,6 +113,7 @@ export default function MapApp() {
   const [basemapStatus, setBasemapStatus] = useState<BasemapStatus>("loading");
   const [boundaryStatus, setBoundaryStatus] = useState<BoundaryStatus>("loading");
   const [drawing, setDrawing] = useState(false);
+  const [mapInstance, setMapInstance] = useState<MapLibreMapInstance | null>(null);
   const mapRef = useRef<MapLibreMapInstance | null>(null);
   const drawingRef = useRef(false);
   const drawPointsRef = useRef<[number, number][]>([]);
@@ -120,6 +121,7 @@ export default function MapApp() {
 
   const onMapReady = useCallback((map: MapLibreMapInstance | null) => {
     mapRef.current = map;
+    setMapInstance(map);
   }, []);
 
   const onBasemapStatus = useCallback((status: BasemapStatus) => {
@@ -222,7 +224,7 @@ export default function MapApp() {
       map.doubleClickZoom.enable();
       delete (window as Window & { __TAISEEL_DRAW_MODE__?: boolean }).__TAISEEL_DRAW_MODE__;
     };
-  }, [mapRef.current]);
+  }, [mapInstance]);
 
   useEffect(() => {
     if (basemapStatus === "ready") notifyParent({ source: "taiseel-map-engine", type: "basemap-status", status: "ready" });
