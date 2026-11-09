@@ -90,8 +90,12 @@ Changes are committed to `main` after the atomic Git update. Local build and loc
 - Preserved source data caveats: administrative geometry is not a parcel; cadastral geometry/UPI does not prove title; source access does not establish Bugesera reuse permission.
 - Added test-only synthetic geography fixtures for local browser tests and added screenshot capture at 1440px, 768px and 390px. CI uploads those images for visual review.
 
-### Verification pending
+### Verification completed
 
-- The previous workflow verified the HTML-only prototype with 8/8 tests. This new map integration requires a fresh build and browser run.
-- Local Vite browser tests use explicit synthetic GeoJSON fixtures; the Vercel preview must separately verify the real geography API routes and GIS responses.
-- Manual screenshot review is not complete until the new CI artifact has been downloaded and inspected.
+- GitHub Actions run 42595065210: TypeScript/Vite build passed; Playwright passed 12/12 tests (28.4 seconds). Tests cover the home/search/saved/details/filter flows, MapLibre mount and readiness, 60vw layout, layer toggle, draw mode, satellite switching, the mobile map-first scaffold and local Vite API routing.
+- CI screenshot artifact taiseel-visual-review was downloaded and inspected. Desktop (1440×900), tablet (768×900), mobile (390×844), the price-filter popover and home screenshots were reviewed.
+- Vercel preview dpl_HoVKUdJDREiA7f1GEguAx42meDcz is READY. The app shell, search page, map page, MapLibre worker and shared worker assets returned HTTP 200.
+- Live preview API counts: Kigali 3 districts / 35 sectors / 161 cells / 1,163 villages; Bugesera 1 district / 15 sectors / 72 cells / 581 villages. Small viewport parcel queries returned 1,379 Kigali records and 104 Bugesera records with published UPI/area fields.
+- CI screenshot routes use explicitly synthetic test polygons to avoid coupling screenshot runs to GIS uptime. Real API feature counts were checked separately; fixture geometry is not production geography.
+- Optional nearby-place and zoning queries returned HTTP 502 during this verification window because upstream Overpass and official zoning providers timed out. No missing features are filled with guesses. The MapLibre canvas, administrative hierarchy, land-price reference styling and parcel APIs were independently verified.
+- Bugesera cadastral source terms, completeness and current survey accuracy still require confirmation.
