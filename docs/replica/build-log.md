@@ -78,3 +78,20 @@ Changes are committed to `main` after the atomic Git update. Local build and loc
 - GitHub Actions run 42543350156: TypeScript/Vite build passed and Playwright passed 8/8 tests (8.8 seconds).
 - Vercel preview deployment dpl_6ECKxiLgfLReFKqWULiAMRDJpn1h reached READY for commit 2c85e44c91aba989cf012cb7066149fae4822b6a; both standalone HTML pages returned HTTP 200.
 - Manual visual comparison at desktop and mobile sizes remains a separate check; automated assertions do not replace visual inspection.
+
+## 2026-11-09 — Land Intelligence MapLibre integration
+
+- Audited the reference HTML and screenshots before changing the map. Recorded the 44px top bar, 52px filter row, 64px rail, 60vw desktop map basis and two-column listing grid in `reference-fidelity-audit.md`.
+- Inspected `Onielq/african-zillow-` MapView and its geography/places/zoning APIs.
+- Ported the source MapLibre MapView, compact-format and parcel-pricing helpers, land-price benchmark data and worker-copy script.
+- Ported the viewport-driven administrative/cadastral geography, nearby-place and zoning handlers into root Vercel API handlers using standard Web Request/Response APIs.
+- Added a same-origin MapLibre page mounted inside the existing map well. The original search HTML scaffolding, filters, right-side sample listing cards and page proportions remain in place.
+- Connected Map / Satellite / Hybrid, layer selection, zoning and draw/remove-boundary controls to the new engine. Default map overlay is landmarks only.
+- Preserved source data caveats: administrative geometry is not a parcel; cadastral geometry/UPI does not prove title; source access does not establish Bugesera reuse permission.
+- Added test-only synthetic geography fixtures for local browser tests and added screenshot capture at 1440px, 768px and 390px. CI uploads those images for visual review.
+
+### Verification pending
+
+- The previous workflow verified the HTML-only prototype with 8/8 tests. This new map integration requires a fresh build and browser run.
+- Local Vite browser tests use explicit synthetic GeoJSON fixtures; the Vercel preview must separately verify the real geography API routes and GIS responses.
+- Manual screenshot review is not complete until the new CI artifact has been downloaded and inspected.
