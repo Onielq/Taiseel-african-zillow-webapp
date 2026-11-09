@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taiseel — Rwanda Real Estate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:       #006aff;
+      --blue-dark:  #0053d1;
+      --ink:        #1a1a1a;
+      --ink-mid:    #555555;
+      --ink-light:  #767676;
+      --border:     #d9d9d9;
+      --surface:    #f5f5f5;
+      --white:      #ffffff;
+      --orange:     #c8590a;
+      --sidebar:    65px;
+      --nav:        56px;
+      --font:       'Open Sans', Arial, Helvetica, sans-serif;
+    }
+
+    html, body { font-family: var(--font); background: var(--white); color: var(--ink); -webkit-font-smoothing: antialiased; }
+
+    /* ── SIDEBAR ─────────────────────────────────────── */
+    .sidebar {
+      position: fixed; left: 0; top: 0; bottom: 0;
+      width: var(--sidebar); background: var(--white);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; align-items: center;
+      padding-top: calc(var(--nav) + 16px);
+      z-index: 200;
+    }
+    .sb-item {
+      display: flex; flex-direction: column; align-items: center;
+      width: 100%; padding: 14px 0 10px; cursor: pointer;
+      color: #444; text-decoration: none; gap: 4px;
+      transition: color 0.15s;
+    }
+    .sb-item:hover { color: var(--blue); }
+    .sb-item svg { width: 22px; height: 22px; }
+    .sb-item span { font-size: 10.5px; font-weight: 600; letter-spacing: -0.01em; line-height: 1; text-align: center; }
+
+    /* ── NAVBAR ──────────────────────────────────────── */
+    .nav {
+      position: fixed; top: 0; left: var(--sidebar); right: 0;
+      height: var(--nav); background: var(--white);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px 0 8px; z-index: 300;
+    }
+    .nav-left { display: flex; align-items: center; height: 100%; }
+    .nav-link {
+      position: relative; display: flex; align-items: center; height: 100%;
+      padding: 0 13px; font-size: 14px; font-weight: 600;
+      color: var(--ink); text-decoration: none; cursor: pointer;
+      white-space: nowrap; transition: color 0.15s;
+    }
+    .nav-link:hover { color: var(--blue); }
+
+    /* Taiseel logo centered */
+    .nav-logo {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 5px; text-decoration: none;
+    }
+    .nav-logo svg { width: 24px; height: 24px; }
+    .nav-logo-text { font-size: 22px; font-weight: 700; color: var(--blue); letter-spacing: -0.5px; font-family: var(--font); }
+
+    .nav-right { display: flex; align-items: center; gap: 4px; height: 100%; }
+    .btn-signin {
+      background: var(--blue); color: #fff; border: none; border-radius: 4px;
+      padding: 9px 18px; font-size: 14px; font-weight: 700;
+      font-family: var(--font); cursor: pointer; margin-left: 8px;
+      transition: background 0.15s;
+    }
+    .btn-signin:hover { background: var(--blue-dark); }
+
+    /* ── DROPDOWNS ───────────────────────────────────── */
+    .has-dd { position: relative; }
+    .dropdown {
+      display: none; position: fixed; top: var(--nav);
+      left: var(--sidebar); right: 0; background: var(--white);
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+      z-index: 290; padding: 24px 40px 28px;
+    }
+    .has-dd:hover .dropdown, .dropdown:hover { display: flex; gap: 48px; }
+    .dd-col { min-width: 200px; }
+    .dd-title { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 14px; display: block; }
+    .dd-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .dd-col ul li a { font-size: 14px; font-weight: 400; color: var(--blue); text-decoration: none; }
+    .dd-col ul li a:hover { text-decoration: underline; }
+    .dd-col p { font-size: 14px; color: var(--ink-mid); line-height: 1.5; margin-bottom: 10px; max-width: 220px; }
+    .dd-div { width: 1px; background: var(--border); align-self: stretch; }
+
+    /* ── MAIN ────────────────────────────────────────── */
+    .main { margin-left: var(--sidebar); padding-top: var(--nav); min-height: 100vh; }
+
+    /* ── HERO ────────────────────────────────────────── */
+    .hero { position: relative; width: 100%; height: 378px; overflow: hidden; background: #2a3a2a; }
+    .hero-img { width: 100%; height: 100%; object-fit: cover; object-position: center 30%; }
+    .hero-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to right, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.08) 60%, transparent 100%);
+    }
+    .hero-content { position: absolute; top: 50%; left: 52px; transform: translateY(-50%); }
+    .hero-title { color: #fff; font-size: 48px; font-weight: 700; line-height: 1.15; margin-bottom: 24px; text-shadow: 0 1px 4px rgba(0,0,0,0.18); }
+    .search-bar {
+      display: flex; align-items: center; background: var(--white);
+      border-radius: 5px; width: 370px; height: 52px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15); overflow: hidden; border: 1px solid #ddd;
+    }
+    .search-bar input { flex: 1; border: none; outline: none; font-size: 14px; color: var(--ink); padding: 0 14px; font-family: var(--font); }
+    .search-bar input::placeholder { color: #999; }
+    .search-bar button {
+      width: 52px; height: 52px; background: transparent; border: none;
+      border-left: 1px solid #eee; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; color: var(--ink);
+    }
+    .search-bar button:hover { background: var(--surface); }
+    .search-bar button svg { width: 19px; height: 19px; }
+
+    /* ── RECOMMENDATIONS ─────────────────────────────── */
+    .rec-section {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 60px 80px 60px 120px; background: var(--white);
+    }
+    .rec-text { max-width: 340px; }
+    .rec-text h2 { font-size: 22px; font-weight: 700; color: var(--ink); margin-bottom: 8px; line-height: 1.3; }
+    .rec-text p { font-size: 14.5px; color: var(--ink-mid); margin-bottom: 22px; line-height: 1.5; }
+    .btn-outline {
+      display: inline-block; border: 2px solid var(--ink); border-radius: 4px;
+      padding: 9px 22px; font-size: 15px; font-weight: 700; font-family: var(--font);
+      color: var(--ink); background: transparent; cursor: pointer; text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-outline:hover { background: var(--ink); color: #fff; }
+
+    /* Property card stack */
+    .rec-cards { position: relative; width: 340px; height: 280px; flex-shrink: 0; }
+    .card-back {
+      position: absolute; top: 30px; right: -12px; width: 300px;
+      background: var(--white); border-radius: 8px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.12); overflow: hidden; z-index: 1;
+    }
+    .card-front {
+      position: absolute; top: 50px; left: 0; width: 310px;
+      background: var(--white); border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15); overflow: hidden; z-index: 3;
+    }
+    .card-photo { width: 100%; height: 148px; object-fit: cover; display: block; }
+    .card-info { padding: 12px 14px 14px; }
+    .card-price { font-size: 19px; font-weight: 700; color: var(--ink); margin-bottom: 5px; }
+    .card-details { font-size: 12.5px; color: var(--ink-mid); }
+    .card-details span { margin: 0 4px; color: #ccc; }
+
+    /* Recommendation badges */
+    .rec-badge {
+      position: absolute; z-index: 4;
+      display: flex; align-items: center; gap: 8px;
+      background: var(--white); border-radius: 24px;
+      padding: 7px 14px 7px 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.14); width: 260px;
+    }
+    .rec-badge-1 { top: 0; left: 15px; }
+    .rec-badge-2 { top: 36px; left: 15px; }
+    .badge-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .badge-icon.teal { background: #008489; }
+    .badge-icon.orange { background: #e06d00; }
+    .badge-icon svg { width: 16px; height: 16px; fill: #fff; }
+    .badge-text strong { display: block; font-size: 11.5px; font-weight: 700; color: var(--ink); line-height: 1.2; }
+    .badge-text small { font-size: 10.5px; color: var(--ink-light); line-height: 1.2; }
+
+    /* ── BUYABILITY ───────────────────────────────────── */
+    .buyability-section { background: var(--white); padding: 40px 0 48px; border-top: 1px solid #efefef; }
+    .buyability-inner { max-width: 1200px; margin: 0 auto; padding: 0 80px; }
+    .buyability-title { font-size: 22px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .buyability-title sup { font-size: 11px; vertical-align: super; }
+    .buyability-sub { font-size: 14.5px; color: var(--ink-mid); margin-bottom: 24px; }
+    .buyability-grid { display: flex; align-items: flex-start; gap: 28px; }
+
+    /* ZHL Card */
+    .zhl-card {
+      width: 390px; flex-shrink: 0; border: 1px solid var(--border);
+      border-radius: 8px; padding: 22px 22px 20px; background: var(--white);
+    }
+    .zhl-logo-row { display: flex; align-items: center; gap: 7px; margin-bottom: 20px; }
+    .zhl-brand { font-size: 14.5px; font-weight: 700; color: var(--ink); }
+    .zhl-stats { display: flex; gap: 24px; margin-bottom: 18px; }
+    .zhl-stats-3 { gap: 16px; }
+    .zhl-stat-val { font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+    .zhl-stat-label { font-size: 12px; color: var(--ink-light); }
+    .zhl-stat-label sup { font-size: 9px; }
+    .btn-get-started {
+      display: block; width: 100%; background: var(--blue); color: #fff;
+      border: none; border-radius: 5px; padding: 14px; font-size: 15px;
+      font-weight: 700; font-family: var(--font); cursor: pointer;
+      transition: background 0.15s; margin-top: 4px;
+    }
+    .btn-get-started:hover { background: var(--blue-dark); }
+
+    /* Budget Guide property cards */
+    .buyability-cards-wrap { flex: 1; overflow: hidden; }
+    .buyability-cards { display: flex; gap: 16px; }
+    .ba-card { width: 248px; flex-shrink: 0; background: var(--white); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .ba-card-partial { width: 140px; }
+    .ba-card-img-wrap { position: relative; }
+    .ba-card-img { width: 100%; height: 152px; object-fit: cover; display: block; }
+    .ba-badge { position: absolute; top: 0; left: 0; background: #c0392b; color: #fff; font-size: 11px; font-weight: 700; padding: 5px 10px; letter-spacing: 0.02em; }
+    .ba-card-body { padding: 14px 12px; }
+    .sk { height: 12px; background: #e8e8e8; border-radius: 6px; margin-bottom: 9px; }
+    .sk.w100 { width: 100%; }
+    .sk.w80 { width: 80%; }
+    .sk.w60 { width: 60%; }
+
+    /* ── FEATURE CARDS ────────────────────────────────── */
+    .feature-section { background: var(--surface); }
+    .feature-inner { display: flex; gap: 20px; padding: 32px 80px; max-width: 1200px; margin: 0 auto; }
+    .feat-card {
+      flex: 1; background: var(--white); border: 1px solid #ddd; border-radius: 8px;
+      padding: 36px 28px 28px; display: flex; flex-direction: column;
+      align-items: center; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .feat-illus { width: 120px; height: 120px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; }
+    .feat-illus img { width: 100%; height: 100%; object-fit: contain; }
+    .feat-title { font-size: 19px; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
+    .feat-desc { font-size: 14px; color: var(--ink-mid); line-height: 1.6; margin-bottom: 24px; flex: 1; }
+    .feat-btn {
+      display: inline-block; border: 2px solid var(--ink); border-radius: 4px;
+      padding: 9px 20px; font-size: 14.5px; font-weight: 700; color: var(--ink);
+      text-decoration: none; font-family: var(--font);
+      transition: background 0.15s, color 0.15s; white-space: nowrap;
+    }
+    .feat-btn:hover { background: var(--ink); color: #fff; }
+
+    /* ── ABOUT RECS ───────────────────────────────────── */
+    .about-recs { background: var(--surface); text-align: center; padding: 4px 80px 28px; }
+    .about-recs h4 { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+    .about-recs p { font-size: 13px; color: var(--ink-mid); line-height: 1.6; max-width: 900px; margin: 0 auto; }
+
+    /* ── FOOTER ──────────────────────────────────────── */
+    .site-footer { background: var(--white); border-top: 1px solid #e0e0e0; }
+
+    /* Footer nav row */
+    .foot-nav-row { background: var(--white); }
+    .foot-nav-inner {
+      display: flex; align-items: center; max-width: 1200px;
+      margin: 0 auto; padding: 0 80px; height: 56px;
+      margin-left: var(--sidebar);
+    }
+    .foot-nav-item { position: relative; display: flex; align-items: center; height: 100%; }
+    .foot-nav-btn {
+      background: none; border: none; font-size: 14.5px; font-weight: 600;
+      color: var(--ink); cursor: pointer; display: flex; align-items: center;
+      gap: 6px; padding: 0 20px; height: 100%; font-family: var(--font); white-space: nowrap;
+    }
+    .foot-nav-btn:hover { color: var(--blue); }
+    .foot-nav-dd {
+      display: none; position: absolute; top: 100%; left: 0; background: var(--white);
+      border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      list-style: none; padding: 8px 0; min-width: 200px; z-index: 100;
+    }
+    .foot-nav-item:hover .foot-nav-dd { display: block; }
+    .foot-nav-dd li a { display: block; padding: 8px 16px; font-size: 13.5px; color: var(--blue); text-decoration: none; }
+    .foot-nav-dd li a:hover { background: var(--surface); }
+    .foot-nav-sep { width: 1px; height: 24px; background: var(--border); }
+
+    hr.foot-hr { border: none; border-top: 1px solid #e0e0e0; margin: 0; }
+
+    /* Footer links */
+    .foot-links { padding: 20px 80px; max-width: 1200px; margin: 0 auto; }
+    .foot-links-row { display: flex; flex-wrap: wrap; justify-content: center; margin-bottom: 4px; }
+    .foot-links-row a {
+      font-size: 13px; color: var(--ink); text-decoration: none;
+      padding: 2px 10px; border-right: 1px solid #ccc; line-height: 1.8;
+    }
+    .foot-links-row a:last-child { border-right: none; }
+    .foot-links-row a:hover { text-decoration: underline; }
+    .foot-links-row a.blue { color: var(--blue); }
+
+    /* Footer legal */
+    .foot-legal { max-width: 780px; margin: 0 auto; padding: 16px 20px 20px; text-align: center; }
+    .foot-legal p { font-size: 11.5px; color: var(--ink-light); line-height: 1.7; margin-bottom: 10px; }
+    .foot-legal a { color: var(--ink-light); text-decoration: underline; }
+    .foot-legal a.blue { color: var(--blue); }
+
+    /* Footer app buttons */
+    .foot-apps { display: flex; justify-content: center; gap: 12px; padding: 10px 0 16px; }
+    .app-badge { text-decoration: none; display: block; }
+
+    /* Footer bottom bar */
+    .foot-bottom { border-top: 1px solid #e0e0e0; padding: 12px 0; }
+    .foot-bottom-inner {
+      max-width: 1200px; margin: 0 auto; padding: 0 80px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-left: var(--sidebar);
+    }
+    .foot-bottom-left { display: flex; align-items: center; gap: 10px; }
+    .foot-zillow { font-size: 16px; font-weight: 700; color: var(--blue); margin-right: 4px; }
+    .foot-follow { font-size: 13px; color: var(--ink-mid); margin-left: 8px; }
+    .soc { text-decoration: none; display: flex; align-items: center; transition: opacity 0.15s; }
+    .soc:hover { opacity: 0.8; }
+    .foot-bottom-right { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ink-mid); }
+  
+@media (max-width: 900px) {
+ .nav-link { padding-left:8px; padding-right:8px; font-size:12px; }
+ .rec-section { padding-left:48px; padding-right:36px; gap:28px; }
+ .buyability-inner,.feature-inner,.foot-links { padding-left:36px; padding-right:36px; }
+}
+@media (max-width: 680px) {
+ :root { --sidebar:54px; --nav:56px; }
+ .nav { padding:0 8px; }
+ .nav-left .has-dd:not(:first-child),.nav-right .has-dd,.nav-right > .nav-link { display:none; }
+ .nav-logo { position:static; transform:none; margin-left:auto; margin-right:8px; }
+ .nav-logo-text { font-size:19px; }
+ .btn-signin { padding:8px 10px; font-size:12px; margin-left:0; }
+ .hero { height:340px; }
+ .hero-content { left:24px; right:16px; }
+ .hero-title { font-size:clamp(32px,7vw,42px); margin-bottom:20px; }
+ .search-bar { width:min(370px,calc(100vw - var(--sidebar) - 48px)); height:50px; }
+ .search-bar button { height:50px; }
+ .rec-section { padding:32px 24px; flex-direction:column; align-items:flex-start; gap:16px; }
+ .rec-text { max-width:100%; }
+ .rec-cards { transform:scale(.88); transform-origin:top left; margin-bottom:-32px; }
+ .buyability-inner { padding:0 24px; }
+ .buyability-grid { flex-direction:column; }
+ .zhl-card { width:100%; }
+ .buyability-cards-wrap { width:100%; }
+ .feature-inner { flex-direction:column; padding:24px; }
+ .feat-card { width:100%; }
+ .about-recs { padding:8px 24px 24px; }
+ .foot-nav-inner { margin-left:var(--sidebar); padding:0 8px; overflow-x:auto; }
+ .foot-nav-btn { padding:0 10px; font-size:12px; }
+ .foot-links { padding:18px 16px; }
+ .foot-bottom-inner { margin-left:var(--sidebar); padding:0 12px; gap:10px; flex-wrap:wrap; }
+}
+@media (max-width: 420px) {
+ .nav-logo svg { width:20px; height:20px; }
+ .nav-logo-text { font-size:17px; }
+ .btn-signin { padding:7px 8px; font-size:11px; }
+ .hero-title { font-size:31px; }
+ .rec-cards { transform:scale(.76); margin-bottom:-58px; }
+ .zhl-stats { gap:10px; }
+ .zhl-stat-val { font-size:15px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ──────────────────────────────────────────── -->
+<aside class="sidebar">
+  <a class="sb-item" href="/search" target="_top">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <span>Search</span>
+  </a>
+  <a class="sb-item" href="/saved" target="_top">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span>Updates</span>
+  </a>
+  <a class="sb-item" href="/saved" target="_top">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    <span>Favorites</span>
+  </a>
+  <a class="sb-item" href="/search" target="_top">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span>Home<br>Loans</span>
+  </a>
+  <a class="sb-item" href="/saved" target="_top">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    <span>Inbox</span>
+  </a>
+</aside>
+
+<!-- ── NAVBAR ───────────────────────────────────────────── -->
+<nav class="nav">
+  <div class="nav-left">
+
+    <div class="has-dd">
+      <a class="nav-link" href="/search" target="_top">Buy</a>
+      <div class="dropdown">
+        <div class="dd-col">
+          <span class="dd-title">Homes for sale</span>
+          <ul>
+            <li><a href="/search" target="_top">Homes for sale</a></li>
+            <li><a href="/search" target="_top">Foreclosures</a></li>
+            <li><a href="/search" target="_top">For sale by owner</a></li>
+            <li><a href="/search" target="_top">Open houses</a></li>
+            <li><a href="/search" target="_top">New construction</a></li>
+            <li><a href="/search" target="_top">Coming soon</a></li>
+          </ul>
+        </div>
+        <div class="dd-div"></div>
+        <div class="dd-col">
+          <span class="dd-title">Resources</span>
+          <ul>
+            <li><a href="/search" target="_top">Buyers Guide</a></li>
+            <li><a href="/search" target="_top">Foreclosure center</a></li>
+            <li><a href="/search" target="_top">Real estate app</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="has-dd">
+      <a class="nav-link" href="/search" target="_top">Rent</a>
+      <div class="dropdown">
+        <div class="dd-col">
+          <span class="dd-title">Moundville rentals</span>
+          <ul>
+            <li><a href="/search" target="_top">Search apartments for rent</a></li>
+            <li><a href="/search" target="_top">Search houses for rent</a></li>
+            <li><a href="/search" target="_top">Search all rental listings</a></li>
+            <li><a href="/search" target="_top">Browse all rental buildings</a></li>
+          </ul>
+        </div>
+        <div class="dd-div"></div>
+        <div class="dd-col">
+          <span class="dd-title">Tools for renters</span>
+          <ul>
+            <li><a href="/search" target="_top">Estimate what you can afford</a></li>
+            <li><a href="/search" target="_top">See your applications</a></li>
+            <li><a href="/search" target="_top">Manage your tours</a></li>
+            <li><a href="/search" target="_top">Pay your rent</a></li>
+            <li><a href="/search" target="_top">Build your credit</a></li>
+            <li><a href="/search" target="_top">Get renters insurance</a></li>
+            <li><a href="/search" target="_top">Explore housing voucher programs</a></li>
+            <li><a href="/search" target="_top">Learn more about renting</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="has-dd">
+      <a class="nav-link" href="/search" target="_top">Sell</a>
+      <div class="dropdown">
+        <div class="dd-col">
+          <span class="dd-title">Looking for pros?</span>
+          <ul>
+            <li><a href="/search" target="_top">Real estate agents</a></li>
+            <li><a href="/search" target="_top">Home builders</a></li>
+            <li><a href="/search" target="_top">Property managers</a></li>
+            <li><a href="/search" target="_top">Real estate photographers</a></li>
+          </ul>
+        </div>
+        <div class="dd-div"></div>
+        <div class="dd-col">
+          <span class="dd-title">I'm a pro</span>
+          <ul>
+            <li><a href="/search" target="_top">Agent solutions</a></li>
+            <li><a href="/search" target="_top">Real estate business plan</a></li>
+            <li><a href="/search" target="_top">Agent advertising</a></li>
+            <li><a href="/search" target="_top">Real estate agent scripts</a></li>
+            <li><a href="/search" target="_top">Agent resource center</a></li>
+            <li><a href="/search" target="_top">Listing flyer templates</a></li>
+            <li><a href="/search" target="_top">Create a free agent account</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="has-dd">
+      <a class="nav-link" href="/search" target="_top">Get a mortgage</a>
+      <div class="dropdown">
+        <div class="dd-col">
+          <span class="dd-title">Started a loan application?</span>
+          <p>Pick up where you left off on your Taiseel Budget Guide dashboard.</p>
+          <ul><li><a href="/search" target="_top">Home loans dashboard</a></li></ul>
+        </div>
+        <div class="dd-div"></div>
+        <div class="dd-col">
+          <span class="dd-title">Your mortgage</span>
+          <ul>
+            <li><a href="/search" target="_top">Discover Taiseel Budget Guide</a></li>
+            <li><a href="/search" target="_top">Calculate your Budget Guide</a></li>
+            <li><a href="/search" target="_top">Get pre-qualified</a></li>
+          </ul>
+        </div>
+        <div class="dd-div"></div>
+        <div class="dd-col">
+          <span class="dd-title">Mortgage tools</span>
+          <ul>
+            <li><a href="/search" target="_top">Estimate your mortgage payment</a></li>
+            <li><a href="/search" target="_top">See current mortgage rates</a></li>
+            <li><a href="/search" target="_top">Learn about financing a home</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="has-dd">
+      <a class="nav-link" href="/search" target="_top">Find an agent</a>
+      <div class="dropdown">
+        <div class="dd-col">
+          <span class="dd-title">Looking for pros?</span>
+          <ul>
+            <li><a href="/search" target="_top">Real estate agents</a></li>
+            <li><a href="/search" target="_top">Home builders</a></li>
+            <li><a href="/search" target="_top">Property managers</a></li>
+            <li><a href="/search" target="_top">Real estate photographers</a></li>
+          </ul>
+        </div>
+        <div class="dd-div"></div>
+        <div class="dd-col">
+          <span class="dd-title">I'm a pro</span>
+          <ul>
+            <li><a href="/search" target="_top">Agent solutions</a></li>
+            <li><a href="/search" target="_top">Real estate business plan</a></li>
+            <li><a href="/search" target="_top">Agent advertising</a></li>
+            <li><a href="/search" target="_top">Real estate agent scripts</a></li>
+            <li><a href="/search" target="_top">Agent resource center</a></li>
+            <li><a href="/search" target="_top">Listing flyer templates</a></li>
+            <li><a href="/search" target="_top">Create a free agent account</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CENTER LOGO -->
+  <a class="nav-logo" href="/" target="_top">
+    <svg viewBox="0 0 24 24" fill="#006aff"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <span class="nav-logo-text">Taiseel</span>
+  </a>
+
+  <div class="nav-right">
+    <div class="has-dd">
+      <a class="nav-link" href="/search" target="_top">Manage rentals</a>
+      <div class="dropdown">
+        <div class="dd-col">
+          <span class="dd-title">Management tasks</span>
+          <ul>
+            <li><a href="/search" target="_top">List your property for rent</a></li>
+            <li><a href="/search" target="_top">View your properties</a></li>
+            <li><a href="/search" target="_top">Read your messages</a></li>
+          </ul>
+        </div>
+        <div class="dd-div"></div>
+        <div class="dd-col">
+          <span class="dd-title">Tools for rental managers</span>
+          <ul>
+            <li><a href="/search" target="_top">Check your property's rental value</a></li>
+            <li><a href="/search" target="_top">Screen renters with applications</a></li>
+            <li><a href="/search" target="_top">Create and manage leases</a></li>
+            <li><a href="/search" target="_top">Collect rent</a></li>
+            <li><a href="/search" target="_top">Learn about renting out your property</a></li>
+            <li><a href="/search" target="_top">Search help center</a></li>
+            <li><a href="/search" target="_top">Explore Taiseel Rental Manager</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <a class="nav-link" href="/search" target="_top">Advertise</a>
+    <a class="nav-link" href="/search" target="_top">Get help</a>
+    <button class="btn-signin" type="button" onclick="window.top.location.href='/saved'">My Taiseel</button>
+  </div>
+</nav>
+
+<!-- ── MAIN ──────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- HERO -->
+  <section class="hero">
+    <img class="hero-img"
+      src="https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1400&q=85&auto=format&fit=crop"
+      alt="Home exterior with real estate agent" />
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h1 class="hero-title">Homes. Land.<br>Projects. Rwanda.</h1>
+      <div class="search-bar">
+        <input id="taiseelHeroSearch" type="text" placeholder="Enter a district, neighbourhood, sector or address" />
+        <button aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECOMMENDATIONS -->
+  <section class="rec-section">
+    <div class="rec-text">
+      <h2>Get home recommendations</h2>
+      <p>Sign in for a more personalized experience.</p>
+      <a class="btn-outline" href="/search" target="_top">Sign in</a>
+    </div>
+
+    <div class="rec-cards">
+      <div class="rec-badge rec-badge-1">
+        <div class="badge-icon teal">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        </div>
+        <div class="badge-text">
+          <strong>Recommended homes</strong>
+          <small>based on your monthly budget</small>
+        </div>
+      </div>
+      <div class="rec-badge rec-badge-2">
+        <div class="badge-icon orange">
+          <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        </div>
+        <div class="badge-text">
+          <strong>Recommended homes</strong>
+          <small>based on your preferred location</small>
+        </div>
+      </div>
+      <div class="card-back">
+        <img class="card-photo" src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&q=80&auto=format&fit=crop" alt="House" />
+        <div class="card-info">
+          <div class="card-price">RWF 695M</div>
+          <div class="card-details">4 bd <span>|</span> 3 ba <span>|</span> 288 m² <span>|</span> House for Sale</div>
+        </div>
+      </div>
+      <div class="card-front">
+        <img class="card-photo" src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&q=80&auto=format&fit=crop" alt="House" />
+        <div class="card-info">
+          <div class="card-price">RWF 695M</div>
+          <div class="card-details">4 bd <span>|</span> 3 ba <span>|</span> 288 m² <span>|</span> House for Sale</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BUYABILITY -->
+  <section class="buyability-section">
+    <div class="buyability-inner">
+      <h2 class="buyability-title">Find homes you can afford with Budget Guide<sup>SM</sup></h2>
+      <p class="buyability-sub">Answer a few questions. We'll highlight homes you're likely to qualify for.</p>
+      <div class="buyability-grid">
+
+        <div class="zhl-card">
+          <div class="zhl-logo-row">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#006aff"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            <span class="zhl-brand">Taiseel Budget Guide</span>
+          </div>
+          <div class="zhl-stats">
+            <div><div class="zhl-stat-val">$ --</div><div class="zhl-stat-label">Suggested target price</div></div>
+            <div><div class="zhl-stat-val">$ --</div><div class="zhl-stat-label">Budget Guide<sup>SM</sup></div></div>
+          </div>
+          <div class="zhl-stats zhl-stats-3">
+            <div><div class="zhl-stat-val">$ --</div><div class="zhl-stat-label">Mo. payment</div></div>
+            <div><div class="zhl-stat-val">-- %</div><div class="zhl-stat-label">Today's rate</div></div>
+            <div><div class="zhl-stat-val">-- %</div><div class="zhl-stat-label">APR</div></div>
+          </div>
+          <button class="btn-get-started" type="button" onclick="window.top.location.href='/search'">Explore listings</button>
+        </div>
+
+        <div class="buyability-cards-wrap">
+          <div class="buyability-cards">
+            <div class="ba-card">
+              <div class="ba-card-img-wrap">
+                <img src="https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400&q=80&auto=format&fit=crop" alt="Home" class="ba-card-img"/>
+                <div class="ba-badge">Within Budget Guide</div>
+              </div>
+              <div class="ba-card-body"><div class="sk w100"></div><div class="sk w80"></div><div class="sk w60"></div></div>
+            </div>
+            <div class="ba-card">
+              <div class="ba-card-img-wrap">
+                <img src="https://images.unsplash.com/photo-1605276373954-0c4a0dac5b12?w=400&q=80&auto=format&fit=crop" alt="Home" class="ba-card-img"/>
+                <div class="ba-badge">Within Budget Guide</div>
+              </div>
+              <div class="ba-card-body"><div class="sk w100"></div><div class="sk w80"></div><div class="sk w60"></div></div>
+            </div>
+            <div class="ba-card ba-card-partial">
+              <div class="ba-card-img-wrap">
+                <img src="https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=400&q=80&auto=format&fit=crop" alt="Home" class="ba-card-img"/>
+                <div class="ba-badge">Within Budget Guide</div>
+              </div>
+              <div class="ba-card-body"><div class="sk w100"></div><div class="sk w80"></div><div class="sk w60"></div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURE CARDS -->
+  <section class="feature-section">
+    <div class="feature-inner">
+
+      <div class="feat-card">
+        <div class="feat-illus">
+          <svg viewBox="0 0 140 140" width="120" height="120" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="70" cy="70" r="60" fill="#FFF3E0"/>
+            <rect x="45" y="55" width="50" height="38" rx="4" fill="#1565C0"/>
+            <polygon points="40,58 70,38 100,58" fill="#1976D2"/>
+            <rect x="60" y="72" width="20" height="21" rx="2" fill="#fff"/>
+            <circle cx="52" cy="87" r="11" fill="#4CAF50"/>
+            <line x1="46" y1="87" x2="58" y2="87" stroke="#fff" stroke-width="2.5"/>
+            <line x1="52" y1="81" x2="52" y2="93" stroke="#fff" stroke-width="2.5"/>
+            <circle cx="90" cy="78" r="9" fill="#FFF9C4" stroke="#F9A825" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <h3 class="feat-title">Buy a home</h3>
+        <p class="feat-desc">A real estate agent can provide you with a clear breakdown of costs so that you can avoid surprise expenses.</p>
+        <a class="feat-btn" href="/search" target="_top">Find a local agent</a>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-illus">
+          <svg viewBox="0 0 140 140" width="120" height="120" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="70" cy="70" r="60" fill="#FFF3E0"/>
+            <rect x="52" y="42" width="36" height="55" rx="3" fill="#FF8A65"/>
+            <rect x="56" y="46" width="10" height="12" rx="1" fill="#fff" opacity="0.9"/>
+            <rect x="70" y="46" width="14" height="12" rx="1" fill="#fff" opacity="0.9"/>
+            <rect x="56" y="63" width="10" height="10" rx="1" fill="#fff" opacity="0.9"/>
+            <rect x="70" y="63" width="14" height="10" rx="1" fill="#fff" opacity="0.9"/>
+            <rect x="61" y="79" width="18" height="18" rx="2" fill="#D84315"/>
+            <rect x="44" y="60" width="10" height="37" rx="2" fill="#42A5F5"/>
+            <rect x="86" y="55" width="10" height="42" rx="2" fill="#66BB6A"/>
+            <ellipse cx="70" cy="97" rx="28" ry="5" fill="#A5D6A7" opacity="0.5"/>
+          </svg>
+        </div>
+        <h3 class="feat-title">Rent a home</h3>
+        <p class="feat-desc">We're creating a seamless online experience &ndash; from shopping on the largest rental network, to applying, to paying rent.</p>
+        <a class="feat-btn" href="/search" target="_top">Find rentals</a>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-illus">
+          <svg viewBox="0 0 140 140" width="120" height="120" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="70" cy="70" r="60" fill="#FFF8E1"/>
+            <rect x="40" y="62" width="44" height="38" rx="3" fill="#1565C0"/>
+            <polygon points="36,65 62,44 88,65" fill="#1976D2"/>
+            <rect x="56" y="76" width="12" height="24" rx="2" fill="#fff"/>
+            <rect x="94" y="46" width="6" height="54" rx="2" fill="#F57F17"/>
+            <rect x="88" y="46" width="18" height="6" rx="2" fill="#F57F17"/>
+            <rect x="104" y="44" width="4" height="8" rx="1" fill="#FFD600" transform="rotate(30 106 48)"/>
+            <rect x="44" y="68" width="10" height="10" rx="1" fill="#fff" opacity="0.8"/>
+            <rect x="70" y="68" width="10" height="10" rx="1" fill="#fff" opacity="0.8"/>
+          </svg>
+        </div>
+        <h3 class="feat-title">Sell a home</h3>
+        <p class="feat-desc">No matter what path you take to sell your home, we can help you navigate a successful sale.</p>
+        <a class="feat-btn" href="/search" target="_top">See your options</a>
+      </div>
+
+    </div>
+
+    <!-- About Recs (inside gray section, below feature cards) -->
+    <div class="about-recs">
+      <h4>About Taiseel's Recommendations</h4>
+      <p>Recommendations are based on your location and search activity, such as the homes you've viewed and saved and the filters you've used. We use this information to bring similar homes to your attention, so you don't miss out.</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── FOOTER ─────────────────────────────────────────────── -->
+<footer class="site-footer">
+
+  <!-- Footer nav with dropdowns -->
+  <div class="foot-nav-row">
+    <div class="foot-nav-inner">
+      <div class="foot-nav-item">
+        <button class="foot-nav-btn">Real Estate <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <ul class="foot-nav-dd"><li><a href="/search" target="_top">Homes for sale</a></li><li><a href="/search" target="_top">Foreclosures</a></li><li><a href="/search" target="_top">New construction</a></li><li><a href="/search" target="_top">Recently sold</a></li></ul>
+      </div>
+      <div class="foot-nav-sep"></div>
+      <div class="foot-nav-item">
+        <button class="foot-nav-btn">Rentals <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <ul class="foot-nav-dd"><li><a href="/search" target="_top">Apartments for rent</a></li><li><a href="/search" target="_top">Houses for rent</a></li><li><a href="/search" target="_top">All rental listings</a></li><li><a href="/search" target="_top">All rental buildings</a></li></ul>
+      </div>
+      <div class="foot-nav-sep"></div>
+      <div class="foot-nav-item">
+        <button class="foot-nav-btn">Mortgage Rates <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <ul class="foot-nav-dd"><li><a href="/search" target="_top">30-year fixed</a></li><li><a href="/search" target="_top">15-year fixed</a></li><li><a href="/search" target="_top">5/1 ARM</a></li><li><a href="/search" target="_top">7/1 ARM</a></li></ul>
+      </div>
+      <div class="foot-nav-sep"></div>
+      <div class="foot-nav-item">
+        <button class="foot-nav-btn">Browse Homes <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <ul class="foot-nav-dd"><li><a href="/search" target="_top">Homes by state</a></li><li><a href="/search" target="_top">Homes by city</a></li><li><a href="/search" target="_top">Homes by zip</a></li></ul>
+      </div>
+    </div>
+  </div>
+
+  <hr class="foot-hr">
+
+  <!-- Footer links -->
+  <div class="foot-links">
+    <div class="foot-links-row">
+      <a href="/search" target="_top">About</a><a href="/search" target="_top">Zestimates</a><a href="/search" target="_top">News</a><a href="/search" target="_top">Research</a><a href="/search" target="_top">Careers</a><a href="/search" target="_top">Applicant Privacy Notice</a><a href="/search" target="_top">Help</a><a href="/search" target="_top">Advertise</a><a href="/search" target="_top">Fair Housing Guide</a><a href="/search" target="_top">Advocacy</a><a href="/search" target="_top">Terms of use</a><a href="/search" target="_top">Privacy Notice</a><a href="/search" target="_top">Ad Choices</a>
+    </div>
+    <div class="foot-links-row">
+      <a href="/search" target="_top">Cookie Preference</a><a href="/search" target="_top">Learn</a><a href="/search" target="_top">AI</a><a href="/search" target="_top">Mobile Apps</a>
+    </div>
+    <div class="foot-links-row">
+      <a href="/search" target="_top">Trulia</a><a href="/search" target="_top">StreetEasy</a><a href="/search" target="_top">HotPads</a><a href="/search" target="_top">Out East</a>
+    </div>
+    <div class="foot-links-row" style="margin-top:8px">
+      <a href="/search" target="_top" class="blue">Do Not Sell or Share My Personal Information &rarr;</a>
+    </div>
+  </div>
+
+  <hr class="foot-hr">
+
+  <!-- Legal -->
+  <div class="foot-legal">
+    <p>Taiseel Group is committed to ensuring digital accessibility for individuals with disabilities. We are continuously working to improve the accessibility of our web experience for everyone, and we welcome feedback and accommodation requests. If you wish to report an issue or seek an accommodation, please <a href="/search" target="_top">let us know</a>.</p>
+    <p><a href="/search" target="_top" class="blue">Affiliated Business Arrangement Disclosure</a></p>
+    <p>Taiseel, Inc. holds real estate brokerage <a href="/search" target="_top">licenses</a> in multiple states. Taiseel (Canada), Inc. holds real estate brokerage <a href="/search" target="_top">licenses</a> in multiple provinces.<br>
+    All mortgage lending products and information provided by Taiseel Budget Guide, LLC, NMLS #10287. <a href="/search" target="_top">NMLS Consumer Access</a><br>
+    Licensed Mortgage Banker, N.Y.S. Department of Financial Services<br>
+    2600 Michelson Drive, Suite 1201, Irvine, CA 92612 | Equal Housing Lender | <a href="/search" target="_top">Licensing information</a><br>
+    <a href="/search" target="_top">§ 442-H New York Standard Operating Procedures</a><br>
+    <a href="/search" target="_top">§ New York Fair Housing Notice</a><br>
+    TREC: <a href="/search" target="_top">Information about brokerage services</a>, <a href="/search" target="_top">Consumer protection notice</a><br>
+    California DRE #1522444</p>
+    <p><a href="/search" target="_top" class="blue">Contact Taiseel, Inc. Brokerage</a></p>
+    <p>For listings in Canada, the trademarks REALTOR&reg;, REALTORS&reg;, and the REALTOR&reg; logo are controlled by The Canadian Real Estate Association (CREA) and identify real estate professionals who are members of CREA. The trademarks MLS&reg;, Multiple Listing Service&reg; and the associated logos are owned by CREA and identify the quality of services provided by real estate professionals who are members of CREA. Used under license.</p>
+  </div>
+
+  <!-- App Store buttons -->
+  <div class="foot-apps">
+    <a href="/search" target="_top" class="app-badge">
+      <svg viewBox="0 0 135 42" width="135" height="42" xmlns="http://www.w3.org/2000/svg">
+        <rect width="135" height="42" rx="7" fill="#000"/>
+        <text x="38" y="15" fill="#fff" font-size="8" font-family="'Open Sans',Arial,sans-serif">Download on the</text>
+        <text x="33" y="30" fill="#fff" font-size="14" font-family="'Open Sans',Arial,sans-serif" font-weight="700">App Store</text>
+        <path d="M18 8c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11zM22.7 14c-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C7.25 22 5.94 17.45 7.7 14.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.04.02-.02.01-.85.18z" fill="#fff"/>
+      </svg>
+    </a>
+    <a href="/search" target="_top" class="app-badge">
+      <svg viewBox="0 0 145 42" width="145" height="42" xmlns="http://www.w3.org/2000/svg">
+        <rect width="145" height="42" rx="7" fill="#000"/>
+        <text x="38" y="15" fill="#fff" font-size="8" font-family="'Open Sans',Arial,sans-serif">GET IT ON</text>
+        <text x="33" y="30" fill="#fff" font-size="14" font-family="'Open Sans',Arial,sans-serif" font-weight="700">Google Play</text>
+        <polygon points="14,10 14,32 26,21" fill="#34A853" transform="translate(2,0)"/>
+        <polygon points="14,10 26,21 22,25" fill="#FBBC05" transform="translate(2,0)"/>
+        <polygon points="14,32 26,21 22,17" fill="#EA4335" transform="translate(2,0)"/>
+        <polygon points="16,10 16,32 14,31 14,11" fill="#4285F4" transform="translate(2,0)"/>
+      </svg>
+    </a>
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="foot-bottom">
+    <div class="foot-bottom-inner">
+      <div class="foot-bottom-left">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#006aff"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        <span class="foot-zillow">Taiseel</span>
+        <span class="foot-follow">Follow us:</span>
+        <!-- Facebook -->
+        <a href="/search" target="_top" class="soc" aria-label="Facebook">
+          <svg viewBox="0 0 32 32" width="26" height="26">
+            <circle cx="16" cy="16" r="16" fill="#1877F2"/>
+            <path d="M21 16h-3v10h-4V16h-2v-4h2v-2c0-3 1.5-5 4-5h3v4h-2c-1 0-1 .5-1 1v2h3l-.5 4z" fill="#fff"/>
+          </svg>
+        </a>
+        <!-- Instagram -->
+        <a href="/search" target="_top" class="soc" aria-label="Instagram">
+          <svg viewBox="0 0 32 32" width="26" height="26">
+            <defs><radialGradient id="igf" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="5%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs>
+            <rect width="32" height="32" rx="7" fill="url(#igf)"/>
+            <rect x="4" y="4" width="24" height="24" rx="5" stroke="#fff" stroke-width="2" fill="none"/>
+            <circle cx="16" cy="16" r="6" stroke="#fff" stroke-width="2" fill="none"/>
+            <circle cx="22.5" cy="9.5" r="1.5" fill="#fff"/>
+          </svg>
+        </a>
+        <!-- TikTok -->
+        <a href="/search" target="_top" class="soc" aria-label="TikTok">
+          <svg viewBox="0 0 32 32" width="26" height="26">
+            <rect width="32" height="32" rx="7" fill="#000"/>
+            <path d="M22.2 7.8a5.8 5.8 0 0 1-1.6-.2A5.3 5.3 0 0 0 19.5 7h-3.5v13.8a3.4 3.4 0 0 1-3.4 3.3 3.4 3.4 0 0 1-3.4-3.4c0-2.3 1.8-4 4-3.3V14a7.3 7.3 0 1 0 7.3 7.2V13.8a9 9 0 0 0 5.5 1.8v-3.4a5.4 5.4 0 0 1-3.8-2.4z" fill="#fff"/>
+          </svg>
+        </a>
+      </div>
+      <div class="foot-bottom-right">
+        <span>&copy; 2006-2026 Taiseel.</span>
+        <!-- Equal Housing -->
+        <svg viewBox="0 0 50 50" width="30" height="30" fill="none" stroke="#222" stroke-width="2">
+          <polygon points="25,5 45,20 45,45 5,45 5,20" fill="none"/>
+          <rect x="18" y="32" width="14" height="13" fill="#222" stroke="none"/>
+          <rect x="20" y="32" width="10" height="13" fill="#fff" stroke="none"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+</footer>
+
+
+<script>
+(function () {
+ const input = document.getElementById('taiseelHeroSearch');
+ const goSearch = function () {
+   const params = new URLSearchParams();
+   params.set('q', input && input.value.trim() ? input.value.trim() : 'Kigali, Rwanda');
+   params.set('category', 'Buy');
+   window.top.location.href = '/search?' + params.toString();
+ };
+ const button = document.querySelector('.search-bar button');
+ if (button) button.addEventListener('click', goSearch);
+ if (input) input.addEventListener('keydown', event => { if (event.key === 'Enter') goSearch(); });
+ document.querySelectorAll('.nav .nav-link').forEach(link => {
+   const name = link.textContent.trim().toLowerCase();
+   const category = name === 'rent' ? 'Rent' : (name === 'sell' || name === 'land') ? 'Land' : 'Buy';
+   link.href = '/search?category=' + category;
+   link.target = '_top';
+ });
+ document.querySelectorAll('.card-front,.card-back').forEach(card => {
+   card.style.cursor = 'pointer';
+   card.addEventListener('click', () => { window.top.location.href = '/search'; });
+ });
+})();
+</script>
+</body>
+</html>
