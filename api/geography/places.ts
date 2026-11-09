@@ -347,17 +347,19 @@ function readDistrictName(properties: Record<string, unknown>): string {
 async function fetchPilotDistrictLayer(
   source: typeof PILOT_DISTRICT_LAYERS[number]
 ): Promise<DistrictAreaFeature[]> {
+  // These MapServer layers contain only a few pilot-district polygons.
+  // Do not request resultRecordCount: the Bugesera MapServer does not support
+  // ArcGIS pagination and rejects the request with HTTP 400.
   const params = new URLSearchParams({
     where: "1=1",
     outFields: "*",
     returnGeometry: "true",
     outSR: "4326",
-    resultRecordCount: "100",
     f: "geojson"
   });
   const response = await fetch(source.url + "/query?" + params.toString(), {
     headers: { Accept: "application/geo+json, application/json" },
-    signal: AbortSignal.timeout(12_000)
+    signal: AbortSignal.timeout(18_000)
   });
   if (!response.ok) {
     throw new Error(source.id + " official district GIS returned HTTP " + response.status);
