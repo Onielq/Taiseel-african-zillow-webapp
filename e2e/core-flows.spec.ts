@@ -121,3 +121,10 @@ test('the search page stacks the map above listings on mobile', async ({ page })
   await expect(search.locator('.listing-card:not([hidden])').first()).toBeVisible();
   await expect(search.locator('.results-panel')).toBeVisible();
 });
+test('the Land category returns the two Kigali plot examples', async ({ page }) => {
+  await page.goto('/search?category=Land', { waitUntil: 'domcontentloaded' });
+  const search = page.frameLocator('iframe[title="Taiseel search"]');
+  await expect(search.locator('.listing-card:not([hidden])')).toHaveCount(2);
+  await expect(search.locator('[data-property-id="kagarama-land"]')).toBeVisible();
+  await expect(search.locator('[data-property-id="gahanga-land"]')).toBeVisible();
+});
