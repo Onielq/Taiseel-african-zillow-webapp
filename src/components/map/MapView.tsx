@@ -2049,8 +2049,7 @@ export function MapView({
             "fill-color": areaFillColorExpression(
               showLandPriceHeatmapRef.current &&
                 (level === "district" || level === "sector" || level === "cell"),
-              layer.color,
-              level === "parcel"
+              layer.color
             ),
             // Keep parcels almost transparent until selected. A selected parcel
             // gets a cyan wash as well as a bright outline so the chosen plot is obvious.
