@@ -58,3 +58,23 @@ Changes are committed to `main` after the atomic Git update. Local build and loc
 - Playwright E2E — passed; all workflow steps completed successfully.
 - Vercel deployment: `dpl_Fk768QEaumb5YMaM7N9nGjHExfFn` — READY, target production, same GitHub main commit.
 - Manual desktop/mobile visual inspection remains outstanding; the live browser MCP was not exposed in this session.
+
+
+## 2026-11-09 — Rebuild from the two supplied HTML demos
+
+- Read zillow-clean.html and zillow-rwanda-v3.html in the user-owned source repository.
+- Changed the app route shell so / renders the supplied home prototype and /search renders the supplied Rwanda map/results prototype.
+- Added both pages to public/ as standalone HTML. Preserved their section order, component geometry, filter panels, district map logic and map controls instead of recreating the screens with a new design.
+- Adapted the brand and Rwanda-facing labels; aligned the six residential/rental example cards and added the two existing land sample records so Buy, Rent and Land have corresponding results.
+- Added image assets to the map-page demo cards, linked card IDs to the existing React detail records, and connected search, sorting, saved homes and saved searches to the existing app routes and browser storage.
+- Corrected the map attribution and changed the district outline treatment to transparent cyan: normal 1.05px, hover 3px and selected 3.5px.
+- Added responsive behavior for the landing page and map/results screen.
+- Replaced outdated documentation that described the earlier independently designed UI with the actual prototype-based architecture and screen specifications.
+- Rewrote Playwright coverage around the supplied screens, their map/filter behavior and the React saved/detail routes.
+
+### Verification status
+
+- All embedded JavaScript blocks were syntax-parsed successfully.
+- GitHub Actions run 42543350156: TypeScript/Vite build passed and Playwright passed 8/8 tests (8.8 seconds).
+- Vercel preview deployment dpl_6ECKxiLgfLReFKqWULiAMRDJpn1h reached READY for commit 2c85e44c91aba989cf012cb7066149fae4822b6a; both standalone HTML pages returned HTTP 200.
+- Manual visual comparison at desktop and mobile sizes remains a separate check; automated assertions do not replace visual inspection.

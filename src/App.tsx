@@ -82,5 +82,12 @@ export default function App(){
  const removeSearch=(id:string)=>setSavedSearches(current=>current.filter(search=>search.id!==id));
  const openSavedSearch=(search:SavedSearch)=>{setCategory(search.category);setQuery(search.query);setActiveSearch(search);go('/search');};
  const id=path.startsWith('/property/')?path.split('/')[2]:'';const selected=listings.find(x=>x.id===id);const current=path==='/'?'/':path==='/saved'?'/saved':'/search';
+ if(path==='/'||path==='/search'){
+  const params=new URLSearchParams(window.location.search);
+  if(activeSearch){params.set('q',activeSearch.query);params.set('category',activeSearch.category);}
+  const queryString=params.toString();
+  const src=path==='/'?'/zillow-clean.html':'/zillow-rwanda-v3.html'+(queryString?'?'+queryString:'');
+  return <iframe className="prototype-frame" title={path==='/'?'Taiseel home':'Taiseel search'} src={src}/>;
+ }
  return <div className="app-root"><Header go={go} choose={setCategory}/><div className="app-body"><Rail go={go} current={current}/><main className="main-content">{path==='/'&&<Home go={go} choose={setCategory} query={query} setQuery={setQuery} saved={saved} toggle={toggle}/ >}{path==='/search'&&<Search key={activeSearch?.id??'fresh'} category={category} setCategory={setCategory} query={query} setQuery={setQuery} saved={saved} toggle={toggle} open={open} savedSearches={savedSearches} saveSearch={saveSearch} initialSearch={activeSearch}/ >}{path==='/saved'&&<Saved items={listings.filter(x=>saved.includes(x.id))} searches={savedSearches} toggle={toggle} open={open} go={go} removeSearch={removeSearch} openSearch={openSavedSearch}/ >}{path.startsWith('/property/')&&(selected?<Property item={selected} saved={saved.includes(selected.id)} toggle={toggle} back={()=>go('/search')}/>:<div className="not-found"><h1>That place is not in this preview.</h1><button className="primary-button" onClick={()=>go('/search')}>Back to search</button></div>)}{path!=='/'&&path!=='/search'&&path!=='/saved'&&!path.startsWith('/property/')&&<div className="not-found"><h1>We could not find that page.</h1><button className="primary-button" onClick={()=>go('/search')}>Search places</button></div>}<Footer go={go}/></main></div></div>;
 }

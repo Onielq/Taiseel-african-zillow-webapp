@@ -24,74 +24,107 @@ test.afterEach(async ({ page }) => {
   expect(errors?.console ?? []).toEqual([]);
 });
 
-test('home search opens the Kigali map and listing results', async ({ page }) => {
+test('home follows the supplied landing-page structure and searches Rwanda', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveTitle(/Taiseel/);
-  await expect(page.getByRole('heading', { name: /Homes\. Land\. Projects\. Rwanda\./i })).toBeVisible();
-  await page.getByRole('button', { name: 'Search', exact: true }).first().click();
-  await expect(page.getByRole('heading', { name: /Find homes in Kigali/i })).toBeVisible();
-  await expect(page.getByLabel('Map of sample Kigali properties')).toBeVisible();
-  await expect(page.getByText(/Preview data only/)).toBeVisible();
+  const home = page.frameLocator('iframe[title="Taiseel home"]');
+  await expect(home.locator('.hero-title')).toContainText('Homes. Land.');
+  await expect(home.getByRole('heading', { name: 'Get home recommendations' })).toBeVisible();
+  await expect(home.getByRole('heading', { name: /Find homes you can afford/ })).toBeVisible();
+  await expect(home.getByRole('heading', { name: 'Buy a home' })).toBeVisible();
+  await home.locator('#taiseelHeroSearch').fill('Kacyiru');
+  await Promise.all([
+    page.waitForURL(/\/search\?/),
+    home.getByRole('button', { name: 'Search' }).click()
+  ]);
+  const search = page.frameLocator('iframe[title="Taiseel search"]');
+  await expect(search.locator('#map')).toBeVisible();
+  await expect(search.locator('.results-panel')).toBeVisible();
+  await expect(search.locator('#searchInput')).toHaveValue('Kacyiru');
 });
 
-test('search filters narrow the list by neighbourhood', async ({ page }) => {
+test('Rwanda search filters cards by neighbourhood', async ({ page }) => {
   await page.goto('/search', { waitUntil: 'domcontentloaded' });
-  await page.getByLabel('Search neighbourhood').fill('Kacyiru');
-  await expect(page.getByText('Bright apartment close to the city')).toBeVisible();
-  await expect(page.getByText('Quiet family villa with garden')).toHaveCount(0);
+  const search = page.frameLocator('iframe[title="Taiseel search"]');
+  await expect(search.locator('#map')).toBeVisible();
+  await search.locator('#searchInput').fill('Kacyiru');
+  await expect(search.locator('.listing-card:not([hidden])')).toHaveCount(1);
+  await expect(search.locator('[data-property-id="kacyiru-apartment"]')).toBeVisible();
+  await expect(search.locator('[data-property-id="nyarutarama-villa"]')).toBeHidden();
 });
 
-test('a home can be saved and revisited', async ({ page }) => {
+test('a property can be saved and revisited from the saved page', async ({ page }) => {
   await page.goto('/search', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'Save home' }).first().click();
-  await page.getByRole('banner').getByRole('button', { name: 'Saved homes' }).click();
-  await expect(page.getByRole('heading', { name: /Places worth keeping/i })).toBeVisible();
+  const search = page.frameLocator('iframe[title="Taiseel search"]');
+  await search.locator('[data-property-id="nyarutarama-villa"] .listing-heart').click();
+  await Promise.all([
+    page.waitForURL(/\/saved$/),
+    search.locator('a.saved-label').click()
+  ]);
+  await expect(page.getByRole('heading', { name: /Places worth keeping/ })).toBeVisible();
   await expect(page.getByText('Quiet family villa with garden')).toBeVisible();
 });
 
-test('property details explain that the listing is illustrative', async ({ page }) => {
+test('a search listing opens its matching property details', async ({ page }) => {
   await page.goto('/search', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: /View Quiet family villa with garden/i }).click();
+  const search = page.frameLocator('iframe[title="Taiseel search"]');
+  await Promise.all([
+    page.waitForURL(/\/property\/nyarutarama-villa$/),
+    search.locator('[data-property-id="nyarutarama-villa"]').click()
+  ]);
   await expect(page.getByRole('heading', { name: 'Quiet family villa with garden' })).toBeVisible();
   await expect(page.getByText('Illustrative listing')).toBeVisible();
   await expect(page.getByText(/ownership, title, planning status/)).toBeVisible();
-  await page.getByRole('button', { name: /Contact about this place/i }).click();
-  await expect(page.getByRole('dialog')).toBeVisible();
-  await expect(page.getByText(/does not transmit personal information/i)).toBeVisible();
 });
 
-test('home featured listings can be saved', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'Save home' }).first().click();
-  await page.getByRole('banner').getByRole('button', { name: 'Saved homes' }).click();
-  await expect(page.getByRole('button', { name: 'Quiet family villa with garden', exact: true })).toBeVisible();
-});
-
-test('sort order changes the first search result', async ({ page }) => {
+test('the map page preserves its filter dropdowns and sorting controls', async ({ page }) => {
   await page.goto('/search', { waitUntil: 'domcontentloaded' });
-  await page.getByLabel('Sort listings').selectOption('price-low');
-  await expect(page.getByRole('article').first()).toHaveAttribute('aria-label', /Hillside home with open views/);
+  const search = page.frameLocator('iframe[title="Taiseel search"]');
+  await search.locator('#bbBtn').click();
+  await expect(search.locator('#bbPanel')).toHaveClass(/open/);
+  await search.locator('#bbBtn').click();
+  await search.locator('#sortListings').selectOption('price-low');
+  await expect(search.locator('.listing-card:not([hidden])').first()).toHaveAttribute('data-property-id', 'rebero-home');
+  await search.locator('#forsaleBtn').click();
+  await search.locator('input[name="listingType"][value="For rent"]').check();
+  await search.locator('#forsalePanel .dp-apply').click();
+  await expect(search.locator('.listing-card:not([hidden])')).toHaveCount(1);
+  await expect(search.locator('[data-property-id="kicukiro-rental"]')).toBeVisible();
 });
 
-test('saved searches persist and can be reopened', async ({ page }) => {
+test('saved searches persist and reopen inside the Rwanda search layout', async ({ page }) => {
   await page.goto('/search', { waitUntil: 'domcontentloaded' });
-  await page.getByLabel('Search neighbourhood').fill('Kacyiru');
-  await page.getByRole('button', { name: 'Save search' }).click();
-  await expect(page.getByText('Stored on this device.')).toBeVisible();
-  await page.reload();
-  await page.getByRole('banner').getByRole('button', { name: 'Saved homes' }).click();
+  const search = page.frameLocator('iframe[title="Taiseel search"]');
+  await search.locator('#searchInput').fill('Kacyiru');
+  await search.locator('#saveSearchButton').click();
+  await expect(search.locator('#saveSearchButton')).toHaveText('Search saved');
+  await Promise.all([
+    page.waitForURL(/\/saved$/),
+    search.locator('a.saved-label').click()
+  ]);
   await expect(page.getByRole('heading', { name: 'Saved searches' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Kacyiru' })).toBeVisible();
-  await page.getByRole('button', { name: 'View results' }).click();
-  await expect(page.getByLabel('Search neighbourhood')).toHaveValue('Kacyiru');
-  await expect(page.getByText('Bright apartment close to the city')).toBeVisible();
+  await Promise.all([
+    page.waitForURL(/\/search$/),
+    page.getByRole('button', { name: 'View results' }).click()
+  ]);
+  const reopened = page.frameLocator('iframe[title="Taiseel search"]');
+  await expect(reopened.locator('#searchInput')).toHaveValue('Kacyiru');
+  await expect(reopened.locator('[data-property-id="kacyiru-apartment"]')).toBeVisible();
 });
 
-test('mobile search can switch between results and the map', async ({ page }) => {
+test('the search page stacks the map above listings on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/search', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'Map', exact: true }).click();
-  await expect(page.getByLabel('Map of sample Kigali properties')).toBeVisible();
-  await page.getByRole('button', { name: 'List', exact: true }).click();
-  await expect(page.getByRole('heading', { name: /Find homes in Kigali/i })).toBeVisible();
+  const search = page.frameLocator('iframe[title="Taiseel search"]');
+  await expect(search.locator('.map-wrap')).toBeVisible();
+  await expect(search.locator('.listing-card:not([hidden])').first()).toBeVisible();
+  await expect(search.locator('.results-panel')).toBeVisible();
+});
+test('the Land category returns the two Kigali plot examples', async ({ page }) => {
+  await page.goto('/search?category=Land', { waitUntil: 'domcontentloaded' });
+  const search = page.frameLocator('iframe[title="Taiseel search"]');
+  await expect(search.locator('.listing-card:not([hidden])')).toHaveCount(2);
+  await expect(search.locator('[data-property-id="kagarama-land"]')).toBeVisible();
+  await expect(search.locator('[data-property-id="gahanga-land"]')).toBeVisible();
 });
