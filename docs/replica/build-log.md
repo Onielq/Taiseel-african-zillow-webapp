@@ -75,5 +75,6 @@ Changes are committed to `main` after the atomic Git update. Local build and loc
 ### Verification status
 
 - All embedded JavaScript blocks were syntax-parsed successfully.
-- GitHub Actions build and browser tests are the next runtime verification gate.
+- GitHub Actions run 42543350156: TypeScript/Vite build passed and Playwright passed 8/8 tests (8.8 seconds).
+- Vercel preview deployment dpl_6ECKxiLgfLReFKqWULiAMRDJpn1h reached READY for commit 2c85e44c91aba989cf012cb7066149fae4822b6a; both standalone HTML pages returned HTTP 200.
 - Manual visual comparison at desktop and mobile sizes remains a separate check; automated assertions do not replace visual inspection.
