@@ -677,8 +677,7 @@ function applyVectorContextVisibility(map: MapLibreMapInstance, categories: MapO
   }
 }
 
-const NORMAL_STYLE_URL =
-  process.env.NEXT_PUBLIC_MAP_STYLE_URL?.trim() || FALLBACK_STYLE_URL;
+const NORMAL_STYLE_URL = FALLBACK_STYLE_URL;
 
 // Approximate geographic envelope of Rwanda with a small safety margin.
 // maxBounds constrains panning; a viewport-derived min zoom prevents zooming
