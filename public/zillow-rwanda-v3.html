@@ -1615,7 +1615,7 @@ document.addEventListener('DOMContentLoaded', function () {
    if (resultCount) resultCount.textContent = count + ' illustrative listing' + (count === 1 ? '' : 's');
  };
  if (input) input.addEventListener('input', applyFilters);
- if (initialQuery || category !== 'Buy') applyFilters();
+ applyFilters();
  const originalSetForSale = window.setForSale;
  if (originalSetForSale) window.setForSale = function (radio) { originalSetForSale(radio); applyFilters(); };
  ['applyPrice','applyBedBath','applyPropertyType'].forEach(name => {
