@@ -36,11 +36,16 @@ The supplied home HTML remains the implementation source of truth: 65px navigati
 - Retain the current Taiseel wordmark placeholder. The user will supply the final logo asset separately.
 - Preserve normal, hover and selected visual hierarchy for boundaries; do not introduce opaque fills that obscure the base map or imagery.
 
-## Verification plan
+## Verification result — 2026-11-09
 
-1. TypeScript/Vite production build.
-2. Browser tests for map mount, map/imagery/hybrid switching, overlay toggles, selected-area response, draw/remove boundary, and the existing filter/listing flows.
-3. Preview deployment HTTP checks for the map entry and each geography API.
-4. Browser screenshots at approximately 1440px, 768px and 390px widths for review of the map/list proportions and responsive behavior.
+- TypeScript/Vite production build: passed.
+- Playwright: 12/12 passed in GitHub Actions run 42595065210 (commit 7cfada013afae166b211cac485eecb3501145a6c).
+- Browser screenshots were captured and inspected at 1440×900, 768×900 and 390×844. The 1440px price-filter popover and home screen were also inspected.
+- The search map retains the reference map/results split and original filter row. The right results panel remains two-column on desktop and the map stacks above results on mobile.
+- Vercel preview deployment dpl_HoVKUdJDREiA7f1GEguAx42meDcz returned HTTP 200 for the app shell, search page, map page and versioned MapLibre worker assets.
+- Real preview API checks returned: Kigali 3 districts / 35 sectors / 161 cells / 1,163 villages; Bugesera 1 district / 15 sectors / 72 cells / 581 villages. Small viewport requests returned 1,379 Kigali parcel features and 104 Bugesera parcel features, with UPI and area fields where published.
+- The screenshots use synthetic test polygons so the UI checks do not depend on live GIS availability. Live API data counts are verified separately; the screenshots must not be interpreted as actual district or parcel geometry.
 
-**Visual QA limitation:** the current integration tools can read deployed HTML and run Playwright through GitHub Actions, but do not expose an interactive browser session or an image-returning screenshot tool for the live Vercel page. The audit therefore records source-level and reference-image measurements before code; it does not claim a manual screenshot comparison of the current production page.
+### Known provider limitations
+
+The nearby-place Overpass query and official zoning GIS query returned HTTP 502 during this check because the upstream services timed out. They are optional overlays; the basemap, administrative hierarchy, transaction-price layer and cadastral parcel APIs are separate. Missing place or zoning features are not fabricated. Bugesera cadastral reuse permission, completeness and survey currency remain pending in the source project.
