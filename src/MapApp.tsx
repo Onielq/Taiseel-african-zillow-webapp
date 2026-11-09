@@ -210,6 +210,7 @@ export default function MapApp() {
       const polygon = boundaryFeature(drawPointsRef.current);
       if (polygon) updateDrawSource(map, { type: "FeatureCollection", features: [polygon] });
       drawingRef.current = false;
+      (window as Window & { __TAISEEL_DRAW_MODE__?: boolean }).__TAISEEL_DRAW_MODE__ = false;
       setDrawing(false);
       map.doubleClickZoom.enable();
       notifyParent({ source: "taiseel-map-engine", type: "draw-complete" });
