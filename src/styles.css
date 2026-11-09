@@ -268,3 +268,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
  :root{--line:#666}
  .eyebrow,.muted,.listing-location,.property-address{color:#2a2a37}
 }
+
+/* Full-viewport user-supplied prototype screens (home and Rwanda search). */
+#root{min-height:100vh;width:100%}
+.prototype-frame{position:fixed;inset:0;display:block;width:100%;height:100vh;height:100dvh;border:0;background:#fff}
