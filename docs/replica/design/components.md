@@ -1,39 +1,39 @@
-# Taiseel component specifications — Zillow-inspired public reference
+# Taiseel screen specifications — supplied HTML prototypes
 
-## Navigation
-- Desktop header is 80px high, white, with left-aligned Buy/Rent/Land navigation, a centered Taiseel wordmark, and saved/account actions on the right.
-- A 72px vertical quick-navigation rail remains visible on desktop and collapses at mobile widths.
-- Active and hover navigation states use the Taiseel accent token.
+## Home: public/zillow-clean.html
 
-## Home discovery
-- Full-width photographic hero with a dark readability overlay.
-- Compact, heavy two-line heading in Inter 900, 60px maximum.
-- A long rounded address/location field with a circular search action.
-- Search terms are Rwanda-specific: district, neighbourhood and address.
-- Home recommendation/listing cards begin directly below the hero; sample data disclosures remain visible.
-- No competitor wordmark, proprietary font, photo or copy is included.
+- Fixed 56px white navbar with left navigation, centered Taiseel wordmark and right-side account action.
+- Fixed 65px vertical navigation rail.
+- Full-width photographic hero, 378px tall on desktop, with dark overlay and two-line headline.
+- 370px search field inside the hero.
+- Recommendations section with text on the left and layered property-card composition on the right.
+- Budget / affordability section, three feature cards, recommendations note and full footer.
+- Open Sans typography as in the supplied home prototype.
 
-## Search toolbar and results
-- Sticky white toolbar with rounded location input, category, price, beds/baths, type, more filters and save-search action.
-- Filter popovers are white, 12px radius, softly elevated and use blue focus/active states.
-- Desktop map/list is split 56/44; map markers and visible result cards use the same filtered sample rows.
-- Result cards use a compact two-column grid on desktop with a 12px radius and restrained 4px/15px shadow.
-- Results remain independently scrollable from the map.
+## Search: public/zillow-rwanda-v3.html
 
-## Property cards and details
-- Card surfaces are white with 12px radius. Photo corners follow the card shell.
-- Price and title have a stronger Inter hierarchy; factual metadata uses muted secondary text.
-- Save action is a visible, circular, labelled control.
-- The detail screen retains ownership/title/availability verification warnings.
+- 44px top navigation and 52px filter toolbar.
+- Search, listing status, price, beds/baths, property type, more filters and save-search controls remain in the supplied order.
+- 64px side rail, map on the left (60vw desktop basis) and scrollable results panel on the right.
+- Results use a two-column listing grid.
+- Map layer selector, schools control, draw control, zoom controls, district hover labels and click-to-zoom behavior remain in place.
+- Inter typography as in the supplied Rwanda prototype.
 
-## Saved items and dialogs
-- Saved homes and saved searches remain separate sections.
-- Contact dialog uses a centered white surface, 12px radius and soft shadow.
-- Enquiry is still local-only and clearly says no message is transmitted.
+## Rwanda-specific corrections
 
-## Tokens and states
-- Canvas #ffffff; surface #eeeef0; text #111116; secondary text #535364; accent #0041d9.
-- 8px spacing base, 8px card padding, 12px cards, 20px tags and pill controls.
-- Default transitions 200ms ease; reduced motion is explicitly supported.
-- Keyboard focus uses a blue double ring. Normal body text retains strong contrast.
-- Inter is used instead of the proprietary Object Sans font named in the extraction.
+- Taiseel name and Rwanda property categories replace source-brand labels.
+- Listing examples use RWF and metric area units.
+- Eight sample records cover homes, a rental and land; sample card IDs link to matching React details.
+- The map attribution reflects the actual OSM/CARTO base map instead of the original inaccurate Google attribution.
+- District hover, normal and selected outlines use cyan with transparent fill: 1.05px, 3px and 3.5px respectively.
+
+## Responsive behavior and interaction
+
+- The home page stacks the recommendations, budget card, feature cards and footer content on narrower screens.
+- The search page turns the map/results split into a vertical flow, with the map above results; filter controls stay horizontally scrollable.
+- Search, category, price, bedroom/bathroom and property-type filters update the result cards. Sorting and saved actions are wired to the preview records.
+- Saved cards open the existing React property detail route. The Saved Homes route and property detail pages remain in the React shell.
+
+## Verification states
+
+All records remain illustrative. Administrative boundaries are not cadastral parcel shapes. Price, availability, ownership, title status, zoning and agent identity are not verified.
