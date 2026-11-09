@@ -3784,9 +3784,10 @@ export function MapView({
 
       for (const level of AREA_LEVELS) {
         const layer = AREA_LAYERS[level];
-        map.on("click", layer.fill, (event) =>
-          handleAreaClick(level, layer.source, event.features?.[0])
-        );
+        map.on("click", layer.fill, (event) => {
+          if ((window as Window & { __TAISEEL_DRAW_MODE__?: boolean }).__TAISEEL_DRAW_MODE__) return;
+          handleAreaClick(level, layer.source, event.features?.[0]);
+        });
       }
 
       const selectProjectMarker = (event: { features?: MapGeoJSONFeature[] }) => {
@@ -3817,6 +3818,7 @@ export function MapView({
       // The marker carries the original cadastral feature ID so map styling and
       // the information panel stay in sync with polygon selection.
       const selectParcelFromMarker = (event: { features?: MapGeoJSONFeature[]; point: { x: number; y: number } }) => {
+        if ((window as Window & { __TAISEEL_DRAW_MODE__?: boolean }).__TAISEEL_DRAW_MODE__) return;
         const marker = event.features?.[0];
         const markerProperties = marker?.properties as AreaProperties | null;
         if (!markerProperties || markerProperties.level !== "parcel") return;
@@ -3839,6 +3841,7 @@ export function MapView({
       // Clicking an unoccupied part of the map clears selection and restores
       // the selected parcel capsule to its underlying market-status color.
       map.on("click", (event) => {
+        if ((window as Window & { __TAISEEL_DRAW_MODE__?: boolean }).__TAISEEL_DRAW_MODE__) return;
         const clickableLayers = [
           ...AREA_LEVELS.map((level) => AREA_LAYERS[level].fill),
           "metric-bubbles-circle",
