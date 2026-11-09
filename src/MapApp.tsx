@@ -52,10 +52,10 @@ function selectedAreaEvent(area: SelectedArea | null): ParentEvent {
       sector: area.sector,
       cell: area.cell,
       village: area.village,
-      upi: area.upi,
-      parcelNumber: area.parcelNumber,
-      parcelSizeM2: area.parcelSizeM2,
-      sourceLabel: area.sourceLabel
+      upi: area.upi ?? null,
+      parcelNumber: area.parcelNumber ?? null,
+      parcelSizeM2: area.parcelSizeM2 ?? null,
+      sourceLabel: area.sourceLabel ?? null
     } : null
   };
 }
