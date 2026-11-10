@@ -284,3 +284,21 @@ test('capture reference-fidelity screenshots at desktop, tablet and mobile width
   await page.waitForTimeout(350);
   await page.screenshot({ path: output + '/search-mobile-390.png', fullPage: true });
 });
+
+
+test('property details show the recorded house facts and select the matching gallery photo', async ({ page }) => {
+  await page.goto('/property/nyarutarama-villa', { waitUntil: 'domcontentloaded' });
+
+  const facts = page.locator('.facts-grid');
+  await expect(facts.getByText('Parking', { exact: true })).toBeVisible();
+  await expect(facts.getByText('Yes', { exact: true })).toBeVisible();
+  await expect(facts.getByText('Furnishing', { exact: true })).toBeVisible();
+  await expect(facts.getByText('Not furnished', { exact: true })).toBeVisible();
+  await expect(facts.getByText('Plot size', { exact: true })).toBeVisible();
+  await expect(facts.getByText('620 m²', { exact: true })).toBeVisible();
+
+  const firstThumbnail = page.locator('.gallery-side button').first();
+  const expectedPhoto = await firstThumbnail.locator('img').getAttribute('src');
+  await firstThumbnail.click();
+  await expect(page.locator('.gallery-main img')).toHaveAttribute('src', expectedPhoto!);
+});
