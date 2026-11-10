@@ -1,36 +1,49 @@
 # Taiseel preview architecture
 
-## Current implementation
+## Runtime and screens
 
 - Vite serves the React 19 / TypeScript route shell.
-- The / route renders public/zillow-clean.html in a full-viewport iframe.
-- The /search route renders public/zillow-rwanda-v3.html in a full-viewport iframe and forwards query parameters such as q and category.
-- The search HTML keeps the supplied layout: top navigation, filter toolbar, 64px side rail, Leaflet map and right-side results panel.
-- The map page embeds Rwanda district GeoJSON and uses Leaflet/Turf libraries from a CDN. CARTO/OSM, Esri World Imagery and OpenTopoMap tiles are available through the layer selector.
-- The existing React app continues to render /saved and /property/:id. Search-page cards use matching sample record IDs so navigation opens the corresponding details.
-- Saved homes and saved searches use same-origin browser local storage.
-- Vercel rewrites client routes to index.html.
+- `/` renders `public/zillow-clean.html` in a full-viewport same-origin iframe.
+- `/search` renders `public/zillow-rwanda-v3.html` in a full-viewport same-origin iframe.
+- The supplied search HTML keeps its navigation, 44px header, 52px filter bar, 64px rail, results panel and card grid.
+- Its existing map rectangle contains `map.html` in a nested same-origin iframe. This keeps the reference page's map/results proportions separate from MapLibre's internal controls and rendering.
+- `src/MapApp.tsx` mounts the source Land Intelligence `MapView` and bridges basemap/layer/drawing commands to the surrounding HTML controls using origin-checked postMessage events.
+- `/saved` and `/property/:id` continue to render in the original React shell.
 
-## Screen fidelity
+## Map engine and data flow
 
-- Home and search screens are ports of the user-supplied zillow-clean.html and zillow-rwanda-v3.html; they are not recreated with a new design system.
-- The home prototype retains its Open Sans typography, 56px navbar, 65px left rail, 378px hero and original section sequence.
-- The Rwanda search prototype retains its Inter typography, 44px top navigation, 52px filter bar, map/results split and original filter-panel structure.
-- Responsive rules were added so the home sections reflow and the search map stacks above results on narrow screens.
-- District boundaries use transparent fill and cyan outlines: 1.05px normal, 3px hover and 3.5px selected. The prototype's zoom-level clearing behavior remains.
+- MapLibre GL JS is the map renderer, with the source project's versioned worker assets served from `public/vendor/maplibre-gl/<version>/`.
+- Basemaps: OpenFreeMap/MapLibre Liberty, Esri World Imagery and Esri hybrid reference layers.
+- Administrative and cadastral features load by current viewport from `/api/geography/areas`.
+- Optional places load from `/api/geography/places`; optional planning overlays load from `/api/geography/zoning`.
+- The active geography hierarchy is District → Sector → Cell → Village. Individual cadastral parcels remain a distinct layer, not an additional administrative level.
+- The map opens with the pilot scope for Gasabo, Kicukiro, Nyarugenge and Bugesera. It uses the source map's geometry-aware zoom transitions and transparent polygon fills.
+- Land-price coloring uses the source project's transaction-price reference data. A transaction reference is not automatically a live asking price or formal valuation.
+- The map wrapper receives a compact selection summary; it does not replace the listing cards with land-intelligence details.
 
-## Data and trust boundaries
+## Reference geometry preserved
 
-The listings in the HTML search page are sample cards aligned by ID with the React detail dataset. They are not live inventory. District polygons are administrative boundaries and do not represent parcel/title boundaries. All prices, locations, amenities, photos and coordinates require verification before being treated as market information.
+- Home: 65px rail, 56px navbar, 378px hero, 370px hero search; source section order preserved.
+- Search: 44px top bar, 52px filter bar, 64px rail, map flex basis 60vw and results in the remaining width; two-column desktop listing cards.
+- On narrow screens the source search CSS stacks the map above the listing panel. The map iframe fills the map rectangle, not the full page.
+- Map status, selection card and controls are positioned inside the map rectangle so they do not change the page scaffold.
 
-## Intentionally not present
+## API deployment distinction
 
-- No live property API, ingestion or production data sync.
-- No account authentication, cross-device sync, production messaging or payments.
-- No title registry or ownership verification.
-- No production cadastral parcel layer, zoning layer or transaction-market feed.
-- No verified valuation or live listing availability.
+The Vite development server uses a small middleware adapter to execute the same Web Request/Response handlers in `api/geography/` via `ssrLoadModule`. The `predev` script generates the API-compatible JavaScript price modules and MapLibre worker assets. Playwright intercepts those endpoints with explicitly synthetic fixtures for deterministic interaction tests. Vercel serves the standard handlers from root `api/`.
 
-## Production data architecture
+## Trust boundaries
 
-A production release should introduce a versioned property API backed by validated records and field-level provenance. Each record should identify its source, observation time, confidence and rights to publish. Price, listing status, legal documents, agent identity, parcel shape and transaction history need separate source and freshness rules.
+- Administrative area geometry is not an individual plot.
+- A cadastral polygon/UPI is not proof of current title, ownership, encumbrances, survey completeness or permission to republish.
+- Transaction/reference prices and geometry-derived sizes must retain their source and calculation basis.
+- The right-side property listings remain illustrative. They are not linked to the map parcel layer as verified available inventory.
+- Bugesera parcel reuse terms remain pending in the source project. Preserve source caveats.
+
+## Not implemented in this slice
+
+- Live property listing ingestion or CRM connection.
+- Agent identity/availability verification.
+- Parcel title verification.
+- Cross-device authentication and saved-search sync.
+- A production valuation or transaction data feed beyond the source map's existing reference overlays.

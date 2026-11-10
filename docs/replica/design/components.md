@@ -1,39 +1,38 @@
-# Taiseel screen specifications — supplied HTML prototypes
+# Taiseel screen specifications — source HTML and Land Intelligence map
 
-## Home: public/zillow-clean.html
+## Home: `public/zillow-clean.html`
 
-- Fixed 56px white navbar with left navigation, centered Taiseel wordmark and right-side account action.
+- Fixed 56px white navbar with left navigation, centered wordmark placeholder and right-side account action.
 - Fixed 65px vertical navigation rail.
-- Full-width photographic hero, 378px tall on desktop, with dark overlay and two-line headline.
+- 378px photographic hero with dark readability overlay and a two-line heading.
 - 370px search field inside the hero.
-- Recommendations section with text on the left and layered property-card composition on the right.
-- Budget / affordability section, three feature cards, recommendations note and full footer.
-- Open Sans typography as in the supplied home prototype.
+- Original recommendations, budget/affordability, feature-card, explanatory and footer sequence remains in place.
+- The final brand logo asset is still pending from the user.
 
-## Search: public/zillow-rwanda-v3.html
+## Search: `public/zillow-rwanda-v3.html`
 
 - 44px top navigation and 52px filter toolbar.
-- Search, listing status, price, beds/baths, property type, more filters and save-search controls remain in the supplied order.
-- 64px side rail, map on the left (60vw desktop basis) and scrollable results panel on the right.
+- Search, listing category, price, beds/baths, property type, more filters and save-search controls remain in the supplied order.
+- 64px side rail.
+- Map well uses `flex: 0 0 60vw; width: 60vw` on desktop. Results panel takes the remaining width.
 - Results use a two-column listing grid.
-- Map layer selector, schools control, draw control, zoom controls, district hover labels and click-to-zoom behavior remain in place.
-- Inter typography as in the supplied Rwanda prototype.
+- Existing price, beds/baths, property-type, more-filter popovers and search behavior remain in the parent page.
 
-## Rwanda-specific corrections
+## Embedded MapLibre map
 
-- Taiseel name and Rwanda property categories replace source-brand labels.
-- Listing examples use RWF and metric area units.
-- Eight sample records cover homes, a rental and land; sample card IDs link to matching React details.
-- The map attribution reflects the actual OSM/CARTO base map instead of the original inaccurate Google attribution.
-- District hover, normal and selected outlines use cyan with transparent fill: 1.05px, 3px and 3.5px respectively.
+- Reuses the Land Intelligence `MapView` renderer and geography hierarchy.
+- Map, Satellite and Hybrid modes.
+- District, sector, cell, village and cadastral parcel layers.
+- Land-price reference coloring; optional schools/health, transportation, nature and zoning overlays.
+- User drawing mode with a separate cyan boundary overlay and remove action.
+- Source data statuses and a selected-area summary are kept inside the map rectangle.
 
-## Responsive behavior and interaction
+## Responsive behavior
 
-- The home page stacks the recommendations, budget card, feature cards and footer content on narrower screens.
-- The search page turns the map/results split into a vertical flow, with the map above results; filter controls stay horizontally scrollable.
-- Search, category, price, bedroom/bathroom and property-type filters update the result cards. Sorting and saved actions are wired to the preview records.
-- Saved cards open the existing React property detail route. The Saved Homes route and property detail pages remain in the React shell.
+- The source home and search scaffolds keep their own responsive rules.
+- Search map stays inside its allocated map rectangle and stacks above results on mobile; it must not create an independent full-page map.
+- The nested map iframe resizes with the same rectangle and keeps map controls inside its bounds.
 
-## Verification states
+## Data trust
 
-All records remain illustrative. Administrative boundaries are not cadastral parcel shapes. Price, availability, ownership, title status, zoning and agent identity are not verified.
+Administrative and cadastral geometry are not proof of ownership or title. Sample listing prices/status remain illustrative. Transaction-price reference shading, size estimates and any asking-price calculation must keep the source and methodology visible. Bugesera parcel layer reuse/completeness caveats remain.
