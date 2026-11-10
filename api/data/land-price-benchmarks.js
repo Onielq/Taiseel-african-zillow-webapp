@@ -59,4 +59,3 @@ export const DISTRICT_LAND_PRICE_BENCHMARKS = {
     methodologyStatus: "Provisional dashboard comparison; weighting method not disclosed"
   }
 };
-
