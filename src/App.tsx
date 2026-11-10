@@ -59,8 +59,107 @@ function Search({category,setCategory,query,setQuery,saved,toggle,open,savedSear
  <div className="results-workspace"><div className={pane==='map'?'map-column mobile-visible':'map-column'}><MapPanel items={rows} open={open}/></div><section className={pane==='map'?'results-column mobile-hidden':'results-column'}><div className="results-heading"><div><span className="eyebrow">{category==='Buy'?'Homes for sale':category==='Rent'?'Homes for rent':'Land opportunities'}</span><h1>Find {category==='Buy'?'homes':category==='Rent'?'rentals':'land'} in Kigali</h1><p>{rows.length} sample {rows.length===1?'listing':'listings'} to explore</p></div><label className="sort-control">Sort <select aria-label="Sort listings" value={sort} onChange={e=>setSort(e.target.value)}><option value="recommended">Recommended</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="beds">Bedrooms</option><option value="area">Largest area</option></select></label></div><div className="sample-alert"><span/>Preview data only. Prices and availability are not verified.</div>{rows.length?<div className="results-grid">{rows.map(item=><Card key={item.id} item={item} saved={saved.includes(item.id)} toggle={toggle} open={open}/>)}</div>:<div className="empty-results"><div className="empty-icon"><Icon name="search" size={25}/></div><h2>No sample listings match these filters.</h2><p>Try a wider location or clear the location search.</p><button className="outline-button" onClick={()=>setQuery('')}>Clear location search</button></div>}</section></div></div>;
 }
 function Property({item,saved,toggle,back}:{item:Listing;saved:boolean;toggle:(id:string)=>void;back:()=>void}){
- const [contact,setContact]=useState(false);const [submitted,setSubmitted]=useState(false);const [photoIndex,setPhotoIndex]=useState(0);const submit=(e:FormEvent<HTMLFormElement>)=>{e.preventDefault();setSubmitted(true);};
- return <div className="property-page"><div className="property-topline"><button className="back-link" onClick={back}>← Back to results</button><div className="property-actions"><button onClick={()=>toggle(item.id)}><Icon name="heart" size={16}/>{saved?'Saved':'Save'}</button><button onClick={()=>navigator.clipboard?.writeText(window.location.href)}><Icon name="share" size={16}/>Share</button></div></div><div className="property-gallery"><button className="gallery-main" onClick={()=>setPhotoIndex((photoIndex+1)%item.photos.length)} aria-label="Show next property photo"><img src={item.photos[photoIndex]} alt={item.title+' view'}/></button><div className="gallery-side">{item.photos.filter((_,i)=>i!==photoIndex).slice(0,2).map((p,i)=><button key={p} onClick={()=>setPhotoIndex((photoIndex+i+1)%item.photos.length)}><img src={p} alt="Additional property view"/></button>)}</div><span className="gallery-count">{photoIndex+1} / {item.photos.length} preview images</span></div><div className="property-layout"><div className="property-main"><div className="property-label-row"><span className="status-tag">{item.category==='Rent'?'For rent':item.category==='Land'?'Land':'For sale'}</span><span className="sample-tag">Illustrative listing</span></div><h1>{item.title}</h1><p className="property-address"><Icon name="pin" size={16}/>{item.address}</p><div className="property-price-row"><strong>{price(item.price,item.category)}</strong><span>Sample asking price</span></div><div className="property-stats">{item.beds>0&&<div><Icon name="bed"/><strong>{item.beds}</strong><span>Bedrooms</span></div>}{item.baths>0&&<div><Icon name="bath"/><strong>{item.baths}</strong><span>Bathrooms</span></div>}<div><Icon name="area"/><strong>{item.category==='Land'?item.lot:item.area} m²</strong><span>{item.category==='Land'?'Plot size':'Floor area'}</span></div></div><section className="detail-section"><span className="eyebrow">About this place</span><h2>A little more about the property</h2><p>{item.description}</p></section><section className="detail-section"><span className="eyebrow">Property facts</span><h2>Details at a glance</h2><div className="facts-grid">{[['Property type',item.type],['Neighbourhood',item.areaName],['District',item.district],['Floor area',item.area?item.area+' m²':'Not provided'],['Plot size',item.lot?item.lot+' m²':'Not provided'],['Listing status','Unverified demo']].map(([a,b])=><div key={a}><span>{a}</span><strong>{b}</strong></div>)}</div></section><section className="detail-section"><span className="eyebrow">Features</span><h2>What stands out</h2><div className="feature-chips">{item.features.map(f=><span key={f}><Icon name="check" size={14}/>{f}</span>)}</div></section><div className="verification-note"><Icon name="shield" size={21}/><div><strong>Check before you commit.</strong><p>This is sample content. Confirm ownership, title, planning status, exact location, price and availability with official records and relevant parties.</p></div></div></div><aside className="contact-card"><span className="eyebrow">Next step</span><h2>Ask about this property</h2><p>Use the enquiry form to preview the contact journey. This demo does not send messages.</p><button className="primary-button wide" onClick={()=>{setContact(true);setSubmitted(false);}}>Contact about this place <Icon name="arrow" size={16}/></button><div className="contact-separator">or</div><button className="outline-button wide" onClick={()=>{setContact(true);setSubmitted(false);}}><Icon name="calendar" size={16}/>Request a viewing</button><div className="contact-safe"><Icon name="shield" size={16}/>Demo enquiry only. No message is sent.</div></aside></div>{contact&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setContact(false);}}><div className="contact-modal" role="dialog" aria-modal="true" aria-labelledby="contact-heading"><button className="modal-close" onClick={()=>setContact(false)} aria-label="Close enquiry"><Icon name="close"/></button>{submitted?<div className="form-success"><div className="success-mark"><Icon name="check" size={22}/></div><h2>Preview complete</h2><p>Your details were not sent anywhere. Real agent messaging will be connected after verified agents are added.</p><button className="primary-button wide" onClick={()=>setContact(false)}>Close</button></div>:<><span className="eyebrow">Property enquiry preview</span><h2 id="contact-heading">Tell us what you would like to know.</h2><form onSubmit={submit}><label>Your name<input required name="name" placeholder="Full name"/></label><label>Email address<input required name="email" type="email" placeholder="name@example.com"/></label><label>Message<textarea name="message" rows={4} defaultValue={'I would like to know more about '+item.title+'.'}/></label><button className="primary-button wide" type="submit">Preview enquiry <Icon name="arrow" size={16}/></button></form><p className="modal-disclaimer">Demo only — this form does not transmit personal information.</p></>}</div></div>}</div>;
+ const [contact,setContact]=useState(false);const [submitted,setSubmitted]=useState(false);const [photoIndex,setPhotoIndex]=useState(0);
+ const submit=(e:FormEvent<HTMLFormElement>)=>{e.preventDefault();setSubmitted(true);};
+ const facts:[string,string][]=[
+  ['Property type',item.type],
+  ['Neighbourhood',item.areaName],
+  ['District',item.district],
+  ...(item.area>0?[['Floor area',item.area+' m²'] as [string,string]]:[]),
+  ...(item.lot>0?[['Plot size',item.lot+' m²'] as [string,string]]:[]),
+  ...(item.beds>0?[['Bedrooms',String(item.beds)] as [string,string]]:[]),
+  ...(item.baths>0?[['Bathrooms',String(item.baths)] as [string,string]]:[]),
+  ...(item.category!=='Land'?[['Parking',item.parking?'Yes':'No'] as [string,string],['Furnishing',item.furnished?'Furnished':'Not furnished'] as [string,string]]:[]),
+  ['Availability','Not verified']
+ ];
+ const status=item.category==='Rent'?'For rent':item.category==='Land'?'Land for sale':'For sale';
+ return <div className="property-page">
+  <div className="property-topline">
+   <button className="back-link" onClick={back}>← Back to results</button>
+   <div className="property-actions">
+    <button onClick={()=>toggle(item.id)} aria-pressed={saved}><Icon name="heart" size={16}/>{saved?'Saved':'Save'}</button>
+    <button onClick={()=>navigator.clipboard?.writeText(window.location.href)}><Icon name="share" size={16}/>Share</button>
+   </div>
+  </div>
+  <div className="property-gallery" aria-label={item.title+' photos'}>
+   <button type="button" className="gallery-main" onClick={()=>setPhotoIndex((photoIndex+1)%item.photos.length)} aria-label="Show next property photo">
+    <img src={item.photos[photoIndex]} alt={item.title+' view '+(photoIndex+1)}/>
+   </button>
+   <div className="gallery-side">
+    {item.photos.map((photo,index)=>({photo,index})).filter(({index})=>index!==photoIndex).slice(0,2).map(({photo,index})=>
+     <button type="button" key={photo+'-'+index} onClick={()=>setPhotoIndex(index)} aria-label={'Show photo '+(index+1)} aria-pressed={photoIndex===index}>
+      <img src={photo} alt={item.title+' view '+(index+1)}/>
+     </button>
+    )}
+   </div>
+   <span className="gallery-count">Photo {photoIndex+1} of {item.photos.length}</span>
+  </div>
+  <div className="property-layout">
+   <div className="property-main">
+    <div className="property-label-row">
+     <span className="status-tag">{status}</span>
+     <span className="sample-tag">Illustrative listing</span>
+    </div>
+    <h1>{item.title}</h1>
+    <p className="property-address"><Icon name="pin" size={16}/>{item.address}</p>
+    <div className="property-price-row">
+     <strong>{price(item.price,item.category)}</strong>
+     <span>Sample asking price</span>
+    </div>
+    <div className="property-stats">
+     {item.beds>0&&<div><Icon name="bed"/><strong>{item.beds}</strong><span>Bedrooms</span></div>}
+     {item.baths>0&&<div><Icon name="bath"/><strong>{item.baths}</strong><span>Bathrooms</span></div>}
+     <div><Icon name="area"/><strong>{item.category==='Land'?item.lot:item.area} m²</strong><span>{item.category==='Land'?'Plot size':'Floor area'}</span></div>
+    </div>
+    <section className="detail-section">
+     <span className="eyebrow">Overview</span>
+     <h2>About this place</h2>
+     <p>{item.description}</p>
+    </section>
+    <section className="detail-section">
+     <span className="eyebrow">Home facts</span>
+     <h2>Property details</h2>
+     <div className="facts-grid">
+      {facts.map(([label,value])=><div key={label}><span>{label}</span><strong>{value}</strong></div>)}
+     </div>
+    </section>
+    <section className="detail-section">
+     <span className="eyebrow">Features</span>
+     <h2>What stands out</h2>
+     <div className="feature-chips">{item.features.map(feature=><span key={feature}><Icon name="check" size={14}/>{feature}</span>)}</div>
+    </section>
+    <div className="verification-note">
+     <Icon name="shield" size={21}/>
+     <div><strong>Verify before you commit.</strong><p>This is sample content. Confirm ownership, title, planning status, exact location, price and availability with official records and the relevant parties.</p></div>
+    </div>
+   </div>
+   <aside className="contact-card">
+    <span className="eyebrow">Next step</span>
+    <h2>Ask about this property</h2>
+    <p>Preview the enquiry and viewing request for this place. This demo does not send messages.</p>
+    <button className="primary-button wide" onClick={()=>{setContact(true);setSubmitted(false);}}>Contact about this place <Icon name="arrow" size={16}/></button>
+    <div className="contact-separator">or</div>
+    <button className="outline-button wide" onClick={()=>{setContact(true);setSubmitted(false);}}><Icon name="calendar" size={16}/>Request a viewing</button>
+    <div className="contact-safe"><Icon name="shield" size={16}/>Demo enquiry only. No message is sent.</div>
+   </aside>
+  </div>
+  {contact&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setContact(false);}}>
+   <div className="contact-modal" role="dialog" aria-modal="true" aria-labelledby="contact-heading">
+    <button className="modal-close" onClick={()=>setContact(false)} aria-label="Close enquiry"><Icon name="close"/></button>
+    {submitted?<div className="form-success"><div className="success-mark"><Icon name="check" size={22}/></div><h2>Preview complete</h2><p>Your details were not sent anywhere. Real agent messaging will be connected after verified agents are added.</p><button className="primary-button wide" onClick={()=>setContact(false)}>Close</button></div>:<>
+     <span className="eyebrow">Property enquiry preview</span>
+     <h2 id="contact-heading">Tell us what you would like to know.</h2>
+     <form onSubmit={submit}>
+      <label>Your name<input required name="name" placeholder="Full name"/></label>
+      <label>Email address<input required name="email" type="email" placeholder="name@example.com"/></label>
+      <label>Message<textarea name="message" rows={4} defaultValue={'I would like to know more about '+item.title+'.'}/></label>
+      <button className="primary-button wide" type="submit">Preview enquiry <Icon name="arrow" size={16}/></button>
+     </form>
+     <p className="modal-disclaimer">Demo only — this form does not transmit personal information.</p>
+    </>}
+   </div>
+  </div>}
+ </div>;
 }
 function Saved({items,searches,toggle,open,go,removeSearch,openSearch}:{items:Listing[];searches:SavedSearch[];toggle:(id:string)=>void;open:(id:string)=>void;go:(p:string)=>void;removeSearch:(id:string)=>void;openSearch:(search:SavedSearch)=>void}){
  return <div className="saved-page"><div className="saved-heading"><span className="eyebrow">Your shortlist</span><h1>Places worth keeping.</h1><p>Keep homes and useful searches together. Saved information stays in this browser for this preview.</p></div><section className="saved-section"><div className="saved-section-heading"><h2>Saved places</h2><span>{items.length}</span></div>{items.length?<div className="results-grid saved-grid">{items.map(item=><Card key={item.id} item={item} saved toggle={toggle} open={open}/>)}</div>:<div className="empty-saved"><div className="empty-icon"><Icon name="heart" size={26}/></div><h2>Your saved places will show up here.</h2><p>Browse sample listings and tap the heart on a place you want to revisit.</p><button className="primary-button" onClick={()=>go('/search')}>Explore listings <Icon name="arrow" size={16}/></button></div>}</section><section className="saved-section"><div className="saved-section-heading"><h2>Saved searches</h2><span>{searches.length}</span></div>{searches.length?<div className="saved-search-grid">{searches.map(search=><article className="saved-search-card" key={search.id}><span className="eyebrow">Saved search</span><h3>{search.query||'Kigali'}</h3><p>{search.category==='Buy'?'Homes for sale':search.category==='Rent'?'Homes for rent':'Land opportunities'}{search.min?' · From RWF '+Number(search.min).toLocaleString():''}{search.max?' · Up to RWF '+Number(search.max).toLocaleString():''}{search.beds?' · '+search.beds+'+ beds':''}</p><small>Saved {new Date(search.savedAt).toLocaleDateString()}</small><div className="saved-search-actions"><button className="primary-button" onClick={()=>openSearch(search)}>View results</button><button className="outline-button" onClick={()=>removeSearch(search.id)} aria-label={'Remove saved search for '+(search.query||'Kigali')}>Remove</button></div></article>)}</div>:<div className="saved-search-empty"><strong>No searches saved yet.</strong><p>Save a location and filter combination from the search page to keep it here.</p></div>}</section></div>;
