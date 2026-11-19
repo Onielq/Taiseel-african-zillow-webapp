@@ -1755,6 +1755,7 @@ document.addEventListener('DOMContentLoaded', function () {
      frame.contentWindow.postMessage(pending.shift(), window.location.origin);
    }
  };
+ window.applyParcelMapFilters = filters => post({ type:'parcel-filters', filters });
  window.switchMapBasemap = value => {
    const mode = value === 'satellite' ? 'satellite' : value === 'hybrid' ? 'hybrid' : 'map';
    post({ type:'basemap', value:mode });
@@ -1817,6 +1818,19 @@ document.addEventListener('DOMContentLoaded', function () {
      removeButton.hidden = false;
    } else if (message.type === 'boundary-removed') {
      removeButton.hidden = true;
+   } else if (message.type === 'parcel-inventory-stats') {
+     const stats = message.stats || {};
+     const summary = document.getElementById('parcelMapResults');
+     if (window.setParcelPriceDomain) window.setParcelPriceDomain(stats.maxPriceRwf ?? null, stats.priceHistogram ?? []);
+     if (summary) {
+       if (!stats.totalParcels) {
+         summary.textContent = 'Zoom in to cadastral parcel level to filter mapped plots. The illustrative property cards below are separate from cadastral parcel data.';
+       } else if (stats.priceMode === 'monthly' && !stats.monthlyInputsComplete) {
+         summary.textContent = stats.matchedParcels + ' of ' + stats.totalParcels + ' mapped parcels match zoning and area. Enter a lender rate and loan term to use monthly payment filters.';
+       } else {
+         summary.textContent = stats.matchedParcels + ' of ' + stats.totalParcels + ' mapped parcels match these filters in the current map view.';
+       }
+     }
    }
  });
 })();
