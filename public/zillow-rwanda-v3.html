@@ -733,8 +733,8 @@ body {
           <div class="buyability-icon">
             <svg viewBox="0 0 16 16"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 3a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm1 8H7V7h2v5z"/></svg>
           </div>
-          <span>Your BuyAbility℠ <span style="color:#aaa;font-size:11px">?</span></span>
-          <span class="buyability-edit" onclick="openBuyAbility()">Edit</span>
+          <span>Monthly payment estimate</span>
+          <span class="buyability-edit" onclick="resetPriceRange()">Reset</span>
         </div>
         <div class="price-inputs" style="margin-bottom:14px">
           <div class="price-input-wrap">
@@ -747,18 +747,21 @@ body {
             <input type="text" id="mpMax" placeholder="No max">
           </div>
         </div>
-        <p class="mp-sub" style="margin-bottom:14px">Includes estimated principal and interest, mortgage insurance, property taxes, home insurance and HOA fees.</p>
+        <p class="mp-sub" style="margin-bottom:14px">Monthly payment uses the price signal above and the financing terms you enter. We do not assume a bank rate or credit score.</p>
         <div class="mp-field">
-          <label>Down Payment <span class="help-icon">?</span></label>
-          <input type="text" class="mp-select" value="89,800" style="padding:0 10px;border:1px solid var(--gray-border);border-radius:4px;height:36px;width:100%;font-family:inherit;font-size:13px;outline:none">
+          <label>Down payment (RWF)</label>
+          <input type="text" inputmode="numeric" id="monthlyDownPayment" class="mp-select" value="0" style="padding:0 10px;border:1px solid var(--gray-border);border-radius:4px;height:36px;width:100%;font-family:inherit;font-size:13px;outline:none">
         </div>
         <div class="mp-field">
-          <label>Credit Score <span class="help-icon">?</span></label>
-          <select class="mp-select">
-            <option>660 - 719</option><option>720 - 759</option><option>760+</option><option>580 - 619</option><option>620 - 659</option>
-          </select>
+          <label>Annual interest rate (%)</label>
+          <input type="number" min="0" max="100" step="0.01" id="monthlyInterestRate" class="mp-select" placeholder="Enter lender rate">
         </div>
-        <div class="dp-apply-row" style="padding-top:4px"><button class="dp-apply" onclick="closeAll()">Apply</button></div>
+        <div class="mp-field">
+          <label>Loan term (years)</label>
+          <input type="number" min="1" max="50" step="1" id="monthlyLoanTerm" class="mp-select" placeholder="Enter loan term">
+        </div>
+        <p class="mp-sub" id="monthlyModelHint">Enter an annual rate and loan term to calculate monthly payments.</p>
+        <div class="dp-apply-row" style="padding-top:4px"><button class="dp-apply" onclick="applyMonthlyPrice()">See matching parcels</button></div>
       </div>
     </div>
   </div>
@@ -793,6 +796,64 @@ body {
         <button class="pill" data-val="4+" onclick="selectPill('bath',this)">4+</button>
       </div>
       <div class="dp-apply-row" style="padding-top:4px"><button class="dp-apply" onclick="applyBedBath()">Apply</button></div>
+    </div>
+  </div>
+
+  <!-- ZONING -->
+  <div class="filter-wrap">
+    <button class="filter-btn" id="zoningBtn" onclick="toggleDropdown('zoningPanel', this)">
+      <span id="zoningLabel">Zoning</span>
+      <svg class="chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="dropdown-panel zoning-panel" id="zoningPanel">
+      <div class="bb-section-title">Main zoning</div>
+      <div class="zone-grid" id="zoningOptions">
+        <button type="button" class="zone-option" data-zone="R1">R1</button>
+        <button type="button" class="zone-option" data-zone="R1A">R1A</button>
+        <button type="button" class="zone-option" data-zone="R2">R2</button>
+        <button type="button" class="zone-option" data-zone="R3">R3</button>
+        <button type="button" class="zone-option" data-zone="R4">R4</button>
+        <button type="button" class="zone-option" data-zone="CA">CA</button>
+        <button type="button" class="zone-option" data-zone="C2" title="Commercial overlay">C2</button>
+        <button type="button" class="zone-option" data-zone="C3">C3</button>
+      </div>
+      <button type="button" class="other-zone-toggle" id="otherZoneToggle" onclick="toggleOtherZoning()">Other zoning ▾</button>
+      <div class="zone-grid" id="otherZoneOptions" hidden>
+        <button type="button" class="zone-option" data-zone="P3B">P3B</button>
+        <button type="button" class="zone-option" data-zone="P1">P1</button>
+        <button type="button" class="zone-option" data-zone="P2">P2</button>
+        <button type="button" class="zone-option" data-zone="P3A">P3A</button>
+        <button type="button" class="zone-option" data-zone="P3C">P3C</button>
+        <button type="button" class="zone-option" data-zone="P3D">P3D</button>
+        <button type="button" class="zone-option" data-zone="A1">A1</button>
+        <button type="button" class="zone-option" data-zone="A2">A2</button>
+        <button type="button" class="zone-option" data-zone="I1">I1</button>
+        <button type="button" class="zone-option" data-zone="I2">I2</button>
+        <button type="button" class="zone-option" data-zone="PF1">PF1</button>
+        <button type="button" class="zone-option" data-zone="PF2">PF2</button>
+        <button type="button" class="zone-option" data-zone="T1">T1</button>
+        <button type="button" class="zone-option" data-zone="WB">WB</button>
+        <button type="button" class="zone-option" data-zone="W1A">W1A</button>
+      </div>
+      <p class="zone-help">Select a mapped zone to filter cadastral parcels. Select a parcel on the map to view its recorded planning conditions and restrictions. C2 is an overlay, not a base zone.</p>
+      <div class="dp-apply-row"><button class="dp-apply" onclick="applyZoningFilter()">Apply zoning</button></div>
+    </div>
+  </div>
+
+  <!-- PLOT SIZE -->
+  <div class="filter-wrap">
+    <button class="filter-btn" id="areaBtn" onclick="toggleDropdown('areaPanel', this)">
+      <span id="areaLabel">Plot size</span>
+      <svg class="chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="dropdown-panel area-panel" id="areaPanel">
+      <div class="bb-section-title">Parcel area</div>
+      <div class="area-inputs">
+        <div><label for="areaMin">Min (m²)</label><input type="number" id="areaMin" min="0" step="1" placeholder="No min"></div>
+        <div><label for="areaMax">Max (m²)</label><input type="number" id="areaMax" min="0" step="1" placeholder="No max"></div>
+      </div>
+      <p class="zone-help">Cadastral parcel size is preferred. Where it is missing, the mapped polygon area is an estimate.</p>
+      <div class="dp-apply-row"><button class="dp-apply" onclick="applyPlotSize()">Apply area</button></div>
     </div>
   </div>
 
@@ -954,6 +1015,7 @@ body {
       <h1>Rwanda property listings</h1>
       <div class="subhead">Kigali, Rwanda</div>
       <div class="results-count"><strong>8 illustrative listings</strong></div>
+      <div class="parcel-map-results" id="parcelMapResults" aria-live="polite">Zoom in to cadastral parcel level to filter mapped plots. The illustrative property cards below are separate from cadastral parcel data.</div>
     </div>
     <div class="sort-row"><label class="sort-label">Sort: <select id="sortListings" aria-label="Sort listings"><option value="recommended">Homes for you</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></label></div>
 
