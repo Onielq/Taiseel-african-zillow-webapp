@@ -71,10 +71,37 @@ test.beforeEach(async ({ page }) => {
     });
   });
   await page.route('**/api/geography/zoning**', async route => {
+    const west = 30.128;
+    const south = -2.108;
+    const east = 30.132;
+    const north = -2.104;
     await route.fulfill({
       status: 200,
       contentType: 'application/geo+json',
-      body: JSON.stringify({ type: 'FeatureCollection', features: [] })
+      body: JSON.stringify({
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          id: 'e2e-r1-zone',
+          properties: {
+            zoning: 'R1-Low density residential zone',
+            zoning_code: 'R1',
+            zoning_condition: 'Synthetic E2E condition',
+            zoning_prohibited: 'Synthetic E2E prohibited use',
+            zoning_buffer: null,
+            zoning_buffer_detail: null,
+            zoning_source: 'E2E zoning fixture only',
+            zoning_is_overlay: false
+          },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[
+              [west, south], [east, south], [east, north],
+              [west, north], [west, south]
+            ]]
+          }
+        }]
+      })
     });
   });
 
@@ -213,6 +240,63 @@ test('the Land category returns the two Kigali plot examples', async ({ page }) 
   await expect(search.locator('.listing-card:not([hidden])')).toHaveCount(2);
   await expect(search.locator('[data-property-id="kagarama-land"]')).toBeVisible();
   await expect(search.locator('[data-property-id="gahanga-land"]')).toBeVisible();
+});
+
+
+test('zoning, plot-size and price filters change the cadastral parcel results', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/search', { waitUntil: 'domcontentloaded' });
+  const search = page.frameLocator('iframe[title="Taiseel search"]');
+  await search.locator('#mapFrame').evaluate(frame => {
+    (frame as HTMLIFrameElement).src = '/map.html?rli_e2e=1';
+  });
+  const map = search.frameLocator('#mapFrame');
+  await expect(map.locator('.maplibregl-canvas')).toBeVisible();
+  await map.locator('body').evaluate(() => {
+    const testWindow = window as Window & {
+      __RLI_E2E_MAP__?: {
+        setCenter(center: [number, number]): void;
+        setZoom(zoom: number): void;
+      };
+    };
+    const instance = testWindow.__RLI_E2E_MAP__;
+    if (!instance) throw new Error('The E2E map hook did not initialize.');
+    instance.setCenter([30.13, -2.106]);
+    instance.setZoom(17.5);
+  });
+
+  await search.locator('#zoningBtn').click();
+  await search.locator('[data-zone="R1"]').click();
+  await search.locator('#zoningPanel .dp-apply').click();
+  await expect(search.locator('#parcelMapResults')).toContainText('1 of 1 mapped parcels', { timeout: 30000 });
+
+  await search.locator('#zoningBtn').click();
+  await search.locator('[data-zone="R1"]').click();
+  await search.locator('[data-zone="R2"]').click();
+  await search.locator('#zoningPanel .dp-apply').click();
+  await expect(search.locator('#parcelMapResults')).toContainText('0 of 1 mapped parcels');
+
+  await search.locator('#zoningBtn').click();
+  await search.locator('[data-zone="R2"]').click();
+  await search.locator('[data-zone="R1"]').click();
+  await search.locator('#zoningPanel .dp-apply').click();
+  await expect(search.locator('#parcelMapResults')).toContainText('1 of 1 mapped parcels');
+
+  await search.locator('#areaBtn').click();
+  await search.locator('#areaMin').fill('501');
+  await search.locator('#areaPanel .dp-apply').click();
+  await expect(search.locator('#parcelMapResults')).toContainText('0 of 1 mapped parcels');
+
+  await search.locator('#areaBtn').click();
+  await search.locator('#areaMin').fill('');
+  await search.locator('#areaPanel .dp-apply').click();
+  await expect(search.locator('#parcelMapResults')).toContainText('1 of 1 mapped parcels');
+
+  await search.locator('#priceBtn').click();
+  await search.locator('#priceMin').fill('19000000');
+  await search.locator('#bodyListPrice .dp-apply').click();
+  await expect(search.locator('#parcelMapResults')).toContainText('0 of 1 mapped parcels');
+  await expect(search.locator('#priceDomainMax')).not.toHaveText('RWF 1B+');
 });
 
 test('the Land Intelligence MapLibre map mounts inside the reference map proportions', async ({ page }) => {
