@@ -1235,7 +1235,7 @@ function interiorSamplePoint(feature: MapGeoJSONFeature): [number, number] | nul
   for (const x of [0.5, 0.35, 0.65, 0.2, 0.8]) {
     for (const y of [0.5, 0.35, 0.65, 0.2, 0.8]) {
       const point: [number, number] = [west + (east - west) * x, south + (north - south) * y];
-      if (geometryContainsPoint(point, feature.geometry as Geometry)) return point;
+      if (geometryContainsPoint(feature.geometry as Geometry, point)) return point;
     }
   }
   return null;
