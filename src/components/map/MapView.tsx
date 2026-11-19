@@ -67,6 +67,33 @@ export type MapMetric =
   | "marketSupply"
   | "upcomingSupply";
 
+export type ParcelPriceMode = "list" | "monthly";
+export type ParcelSearchFilters = {
+  zoningCodes: string[];
+  minAreaM2: number | null;
+  maxAreaM2: number | null;
+  minPriceRwf: number | null;
+  maxPriceRwf: number | null;
+  priceMode: ParcelPriceMode;
+  downPaymentRwf: number | null;
+  annualInterestRatePercent: number | null;
+  loanTermYears: number | null;
+};
+export type ParcelInventoryStats = {
+  totalParcels: number;
+  matchedParcels: number;
+  minPriceRwf: number | null;
+  maxPriceRwf: number | null;
+  priceHistogram: number[];
+  priceMode: ParcelPriceMode;
+  monthlyInputsComplete: boolean;
+};
+export const EMPTY_PARCEL_SEARCH_FILTERS: ParcelSearchFilters = {
+  zoningCodes: [], minAreaM2: null, maxAreaM2: null,
+  minPriceRwf: null, maxPriceRwf: null, priceMode: "list",
+  downPaymentRwf: 0, annualInterestRatePercent: null, loanTermYears: null
+};
+
 type MetricBubbleValue = {
   level: Exclude<AreaLevel, "parcel">;
   district: string;
@@ -168,7 +195,21 @@ type AreaProperties = {
   source_id?: string | number | null;
   map_feature_id?: string;
   zoning?: string | null;
+  zoning_code?: string | null;
+  zoning_codes?: string[];
+  zoning_entries?: ParcelZoningEntry[];
+  zoning_status?: ParcelZoningStatus | "ambiguous" | null;
   zoning_source?: string | null;
+  zoning_condition?: string | null;
+  zoning_prohibited?: string | null;
+  zoning_buffer?: string | null;
+  zoning_buffer_detail?: string | null;
+  zoning_is_overlay?: boolean;
+  parcel_size_filter_m2?: number | null;
+  parcel_size_filter_source?: "cadastral-attribute" | "geometry-estimate" | null;
+  parcel_price_filter_value_rwf?: number | null;
+  parcel_price_filter_basis?: string | null;
+  parcel_monthly_payment_rwf?: number | null;
   label?: string | null;
   has_value?: boolean;
   icon_image?: string;
@@ -547,6 +588,8 @@ type MapViewProps = {
   selectedMetric: MapMetric;
   showLayers: MapOverlayCategory[];
   showZoning: boolean;
+  parcelFilters: ParcelSearchFilters;
+  onParcelInventoryStats?: (stats: ParcelInventoryStats) => void;
   showScope: ShowScope;
   selectedArea: SelectedArea | null;
   projects?: RwandaProjectRecord[];
@@ -1165,6 +1208,9 @@ function featureToArea(
         : level === "parcel" && geometryAreaM2(feature.geometry as Geometry) !== null
           ? "geometry-estimate"
           : null,
+    zoning: Array.isArray(properties.zoning_entries) ? properties.zoning_entries as ParcelZoningEntry[] : null,
+    zoningStatus: properties.zoning_status ?? null,
+    zoningSource: properties.zoning_source ?? null,
     parcelPriceType: isParcelPriceType(properties.parcel_price_type) ? properties.parcel_price_type : null,
     parcelPriceValue: typeof properties.parcel_price_value === "number" ? properties.parcel_price_value : null,
     parcelPriceSource: properties.parcel_price_source ?? null,
@@ -1180,11 +1226,189 @@ function featureToArea(
   };
 }
 
+function polygonContainsPoint(point: [number, number], polygon: number[][][]): boolean {
+  if (!polygon.length || !ringContainsPoint(point, polygon[0])) return false;
+  return !polygon.slice(1).some((hole) => ringContainsPoint(point, hole));
+}
+function geometryContainsPoint(point: [number, number], geometry: Geometry): boolean {
+  if (geometry.type === "Polygon") return polygonContainsPoint(point, geometry.coordinates as number[][][]);
+  if (geometry.type === "MultiPolygon") return (geometry.coordinates as number[][][][]).some((polygon) => polygonContainsPoint(point, polygon));
+  return false;
+}
+function interiorSamplePoint(feature: MapGeoJSONFeature): [number, number] | null {
+  const bounds = featureBounds(feature);
+  if (!bounds) return null;
+  const [west, south, east, north] = bounds;
+  for (const x of [0.5, 0.35, 0.65, 0.2, 0.8]) {
+    for (const y of [0.5, 0.35, 0.65, 0.2, 0.8]) {
+      const point: [number, number] = [west + (east - west) * x, south + (north - south) * y];
+      if (geometryContainsPoint(point, feature.geometry as Geometry)) return point;
+    }
+  }
+  return null;
+}
+function zoningCodeFromFeature(feature: MapFeatureCollection["features"][number]): string | null {
+  const properties = feature.properties ?? {};
+  const raw = properties.zoning_code ?? properties.zone_code ?? properties.zoning;
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  const value = raw.trim().toUpperCase();
+  const match = value.match(/^([A-Z]{1,3}[0-9]?[A-Z]?)(?:\\b|[-_\\s])/) ?? value.match(/^([A-Z]{1,3}[0-9]?[A-Z]?)$/);
+  return match?.[1] ?? null;
+}
+function zoningEntriesForParcel(
+  parcel: MapFeatureCollection["features"][number],
+  zoningFeatures: MapFeatureCollection["features"]
+): ParcelZoningEntry[] {
+  const point = interiorSamplePoint(parcel as unknown as MapGeoJSONFeature);
+  if (!point) return [];
+  const entries = zoningFeatures.flatMap((feature) => {
+    if (!feature.geometry || !geometryContainsPoint(point, feature.geometry)) return [];
+    const properties = feature.properties ?? {};
+    const code = zoningCodeFromFeature(feature);
+    return [{
+      code,
+      name: typeof properties.zoning === "string" ? properties.zoning : code ?? "Unclassified zoning",
+      condition: typeof properties.zoning_condition === "string" ? properties.zoning_condition : null,
+      prohibited: typeof properties.zoning_prohibited === "string" ? properties.zoning_prohibited : null,
+      buffer: typeof properties.zoning_buffer_detail === "string"
+        ? properties.zoning_buffer_detail
+        : typeof properties.zoning_buffer === "string" ? properties.zoning_buffer : null,
+      sourceListsMultipleCodes: false
+    } satisfies ParcelZoningEntry];
+  });
+  const unique = new Map<string, ParcelZoningEntry>();
+  for (const entry of entries) unique.set([entry.code ?? "", entry.name].join("|"), entry);
+  return Array.from(unique.values());
+}
+function enrichParcelCollection(
+  collection: MapFeatureCollection,
+  zoningFeatures: MapFeatureCollection["features"],
+  areaCollections: Partial<Record<AreaLevel, MapFeatureCollection>>
+): MapFeatureCollection {
+  const cellRates = new Map<string, number>();
+  const sectorRates = new Map<string, number>();
+  const districtRates = new Map<string, number>();
+  for (const feature of areaCollections.cell?.features ?? []) {
+    const p = feature.properties ?? {}, rate = p.average_land_price_per_m2;
+    if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) cellRates.set(normalizedMetricKey(p.district, p.sector, p.cell), rate);
+  }
+  for (const feature of areaCollections.sector?.features ?? []) {
+    const p = feature.properties ?? {}, rate = p.average_land_price_per_m2;
+    if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) sectorRates.set(normalizedMetricKey(p.district, p.sector), rate);
+  }
+  for (const feature of areaCollections.district?.features ?? []) {
+    const p = feature.properties ?? {}, rate = p.average_land_price_per_m2;
+    if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) districtRates.set(normalizeMetricKeyPart(p.district), rate);
+  }
+  return {
+    ...collection,
+    features: collection.features.map((feature) => {
+      const p = feature.properties ?? {};
+      const cadastralArea = typeof p.parcel_size_m2 === "number" && p.parcel_size_m2 > 0 ? p.parcel_size_m2 : null;
+      const geometryArea = feature.geometry ? geometryAreaM2(feature.geometry) : null;
+      const filterArea = cadastralArea ?? geometryArea;
+      const areaSource = cadastralArea !== null ? "cadastral-attribute" as const : geometryArea !== null ? "geometry-estimate" as const : null;
+      const directPriceIsSourced =
+        isParcelPriceType(p.parcel_price_type) &&
+        typeof p.parcel_price_value === "number" && Number.isFinite(p.parcel_price_value) && p.parcel_price_value > 0 &&
+        typeof p.parcel_price_source === "string" && p.parcel_price_source.trim().length > 0;
+      const directRate = typeof p.average_land_price_per_m2 === "number" && p.average_land_price_per_m2 > 0 ? p.average_land_price_per_m2 : null;
+      const cellRate = cellRates.get(normalizedMetricKey(p.district, p.sector, p.cell));
+      const sectorRate = p.district && p.sector ? sectorRates.get(normalizedMetricKey(p.district, p.sector)) : undefined;
+      const districtRate = p.district ? districtRates.get(normalizeMetricKeyPart(p.district)) : undefined;
+      const unitRate = directRate ?? cellRate ?? sectorRate ?? districtRate ?? null;
+      const estimatedPrice = directPriceIsSourced ? p.parcel_price_value as number : calculateParcelAskingPrice(filterArea, unitRate);
+      const priceBasis = directPriceIsSourced ? String(p.parcel_price_type)
+        : directRate !== null ? "parcel transaction-price rate"
+        : cellRate !== undefined ? "matching cell transaction-price snapshot"
+        : sectorRate !== undefined ? "derived sector mean of cell snapshots"
+        : districtRate !== undefined ? "district transaction-price snapshot" : null;
+      const zoningEntries = zoningEntriesForParcel(feature, zoningFeatures);
+      const baseCodes = Array.from(new Set(zoningEntries.filter((entry) => entry.code && entry.code !== "C2").map((entry) => entry.code as string)));
+      const overlayCodes = Array.from(new Set(zoningEntries.filter((entry) => entry.code === "C2").map((entry) => entry.code as string)));
+      const ambiguous = baseCodes.length > 1;
+      const zoningCodes = ambiguous ? overlayCodes : [...baseCodes, ...overlayCodes];
+      const primaryZone = baseCodes.length === 1 ? baseCodes[0] : baseCodes.length === 0 ? overlayCodes[0] ?? null : null;
+      return {
+        ...feature,
+        properties: {
+          ...p,
+          zoning_code: primaryZone,
+          zoning_codes: zoningCodes,
+          zoning_entries: zoningEntries,
+          zoning_status: ambiguous ? "ambiguous" : zoningEntries.length > 0 ? "found" : zoningFeatures.length > 0 ? "not-covered" : "unavailable",
+          zoning_source: zoningEntries.map((entry) => entry.name).filter(Boolean).join(" · ") || (zoningFeatures.length === 0 ? "Official zoning service unavailable for this viewport" : null),
+          parcel_size_filter_m2: filterArea,
+          parcel_size_filter_source: areaSource,
+          parcel_price_filter_value_rwf: estimatedPrice,
+          parcel_price_filter_basis: priceBasis
+        }
+      };
+    })
+  };
+}
+function parcelMonthlyPayment(priceRwf: number | null | undefined, filters: ParcelSearchFilters): number | null {
+  if (
+    typeof priceRwf !== "number" || !Number.isFinite(priceRwf) || priceRwf <= 0 ||
+    typeof filters.annualInterestRatePercent !== "number" || !Number.isFinite(filters.annualInterestRatePercent) || filters.annualInterestRatePercent < 0 ||
+    typeof filters.loanTermYears !== "number" || !Number.isFinite(filters.loanTermYears) || filters.loanTermYears <= 0 ||
+    typeof filters.downPaymentRwf !== "number" || !Number.isFinite(filters.downPaymentRwf) || filters.downPaymentRwf < 0
+  ) return null;
+  const principal = Math.max(0, priceRwf - filters.downPaymentRwf);
+  const months = Math.round(filters.loanTermYears * 12);
+  if (months <= 0) return null;
+  const monthlyRate = filters.annualInterestRatePercent / 1200;
+  return monthlyRate === 0 ? principal / months : principal * monthlyRate / (1 - Math.pow(1 + monthlyRate, -months));
+}
+function parcelMatchesSearchFilters(feature: MapFeatureCollection["features"][number], filters: ParcelSearchFilters): boolean {
+  const p = feature.properties ?? {};
+  const selectedZones = new Set(filters.zoningCodes.map((code) => code.toUpperCase()));
+  if (selectedZones.size > 0 && !(p.zoning_codes ?? []).some((code) => selectedZones.has(code.toUpperCase()))) return false;
+  if (filters.minAreaM2 !== null || filters.maxAreaM2 !== null) {
+    const area = p.parcel_size_filter_m2;
+    if (typeof area !== "number" || !Number.isFinite(area)) return false;
+    if (filters.minAreaM2 !== null && area < filters.minAreaM2) return false;
+    if (filters.maxAreaM2 !== null && area > filters.maxAreaM2) return false;
+  }
+  if (filters.minPriceRwf !== null || filters.maxPriceRwf !== null) {
+    const listPrice = p.parcel_price_filter_value_rwf;
+    const price = filters.priceMode === "monthly" ? parcelMonthlyPayment(typeof listPrice === "number" ? listPrice : null, filters) : listPrice;
+    if (typeof price !== "number" || !Number.isFinite(price)) return false;
+    if (filters.minPriceRwf !== null && price < filters.minPriceRwf) return false;
+    if (filters.maxPriceRwf !== null && price > filters.maxPriceRwf) return false;
+  }
+  return true;
+}
+function parcelInventoryStats(collection: MapFeatureCollection, filters: ParcelSearchFilters): ParcelInventoryStats {
+  const priceValues = collection.features.map((feature) => {
+    const value = feature.properties?.parcel_price_filter_value_rwf;
+    return filters.priceMode === "monthly" ? parcelMonthlyPayment(typeof value === "number" ? value : null, filters) : value;
+  }).filter((value): value is number => typeof value === "number" && Number.isFinite(value) && value >= 0);
+  const minPriceRwf = priceValues.length ? Math.min(...priceValues) : null;
+  const maxPriceRwf = priceValues.length ? Math.max(...priceValues) : null;
+  const histogram = Array.from({ length: 24 }, () => 0);
+  for (const value of priceValues) {
+    const index = maxPriceRwf === null || maxPriceRwf === minPriceRwf ? 0 : Math.min(23, Math.floor(((value - minPriceRwf) / (maxPriceRwf - minPriceRwf)) * 24));
+    histogram[index] += 1;
+  }
+  const monthlyInputsComplete =
+    typeof filters.downPaymentRwf === "number" && filters.downPaymentRwf >= 0 &&
+    typeof filters.annualInterestRatePercent === "number" && filters.annualInterestRatePercent >= 0 &&
+    typeof filters.loanTermYears === "number" && filters.loanTermYears > 0;
+  return {
+    totalParcels: collection.features.length,
+    matchedParcels: collection.features.filter((feature) => parcelMatchesSearchFilters(feature, filters)).length,
+    minPriceRwf, maxPriceRwf, priceHistogram: histogram, priceMode: filters.priceMode, monthlyInputsComplete
+  };
+}
+
 export function MapView({
   basemapMode,
   showLandPriceHeatmap,
   selectedMetric,
   showZoning,
+  parcelFilters = EMPTY_PARCEL_SEARCH_FILTERS,
+  onParcelInventoryStats,
   onMapReady,
   onStatusChange,
   onBoundaryStatusChange,
@@ -1213,6 +1437,12 @@ export function MapView({
   const selectedMetricRef = useRef<MapMetric>(selectedMetric);
   const metricBubbleValuesRef = useRef<MetricBubbleValue[]>([]);
   const areaDataRef = useRef<Partial<Record<AreaLevel, MapFeatureCollection>>>({});
+  const parcelRawFeaturesRef = useRef<MapFeatureCollection>(emptyFeatureCollection());
+  const parcelAllFeaturesRef = useRef<MapFeatureCollection>(emptyFeatureCollection());
+  const zoningFeaturesRef = useRef<MapFeatureCollection["features"]>([]);
+  const parcelFiltersRef = useRef<ParcelSearchFilters>(parcelFilters);
+  const onParcelInventoryStatsRef = useRef(onParcelInventoryStats);
+  const applyParcelFiltersRef = useRef<(() => void) | null>(null);
   const activeAreaLevelRef = useRef<AreaLevel>("district");
   const selectedAreaRef = useRef<SelectedArea | null>(selectedArea);
   const selectionSyncRef = useRef<((area: SelectedArea | null) => void) | null>(null);
@@ -1222,6 +1452,16 @@ export function MapView({
   const showZoningRef = useRef(showZoning);
   const refreshShowOverlaysRef = useRef<(() => void) | null>(null);
   const refreshZoningRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    parcelFiltersRef.current = parcelFilters;
+    applyParcelFiltersRef.current?.();
+    refreshZoningRef.current?.();
+  }, [parcelFilters]);
+
+  useEffect(() => {
+    onParcelInventoryStatsRef.current = onParcelInventoryStats;
+  }, [onParcelInventoryStats]);
 
   // Change only the style, not the map instance. Camera position and the
   // administrative zoom hierarchy therefore remain connected to the same map.
@@ -2746,7 +2986,25 @@ export function MapView({
           map.setLayoutProperty(layer.label, "visibility", showLabel ? "visible" : "none");
         }
       }
+      const zoningVisibility = showZoningRef.current ? "visible" : "none";
+      if (map.getLayer("zoning-overlay-fill")) map.setLayoutProperty("zoning-overlay-fill", "visibility", zoningVisibility);
+      if (map.getLayer("zoning-overlay-outline")) map.setLayoutProperty("zoning-overlay-outline", "visibility", zoningVisibility);
     };
+
+    const applyParcelSearchFilters = () => {
+      const filters = parcelFiltersRef.current;
+      const baseCollection = parcelAllFeaturesRef.current;
+      const filteredCollection: MapFeatureCollection = {
+        ...baseCollection,
+        features: baseCollection.features.filter((feature) => parcelMatchesSearchFilters(feature, filters))
+      };
+      areaDataRef.current.parcel = filteredCollection;
+      const source = map.getSource(AREA_LAYERS.parcel.source) as GeoJSONSource | undefined;
+      source?.setData(filteredCollection);
+      onParcelInventoryStatsRef.current?.(parcelInventoryStats(baseCollection, filters));
+      if (source) refreshMetricBubbles();
+    };
+    applyParcelFiltersRef.current = applyParcelSearchFilters;
 
     const waitBeforeAreaRetry = (signal: AbortSignal, delayMs: number) =>
       new Promise<void>((resolve, reject) => {
@@ -2978,8 +3236,14 @@ export function MapView({
         const merged = mergeAreaCollections(sourceData ? Array.from(sourceData.values()) : []);
         // Use the same promoted identifier in normal and idle publication.
         const withStableFeatureIds = withStableAreaFeatureIds(level, merged);
-        areaDataRef.current[level] = withStableFeatureIds;
-        source.setData(withStableFeatureIds);
+        if (level === "parcel") {
+          parcelRawFeaturesRef.current = withStableFeatureIds;
+          parcelAllFeaturesRef.current = enrichParcelCollection(withStableFeatureIds, zoningFeaturesRef.current, areaDataRef.current);
+          applyParcelSearchFilters();
+        } else {
+          areaDataRef.current[level] = withStableFeatureIds;
+          source.setData(withStableFeatureIds);
+        }
         updateLayerVisibility();
         selectionSyncRef.current?.(selectedAreaRef.current);
         refreshMetricBubbles();
@@ -3129,15 +3393,27 @@ export function MapView({
         for (const result of results) {
           const source = map.getSource(AREA_LAYERS[result.level].source) as GeoJSONSource;
           const stableData = withStableAreaFeatureIds(result.level, result.data);
-          areaDataRef.current[result.level] = stableData;
-          source.setData(stableData);
+          if (result.level === "parcel") {
+            parcelRawFeaturesRef.current = stableData;
+            parcelAllFeaturesRef.current = enrichParcelCollection(stableData, zoningFeaturesRef.current, areaDataRef.current);
+            applyParcelSearchFilters();
+          } else {
+            areaDataRef.current[result.level] = stableData;
+            source.setData(stableData);
+          }
         }
         const requestedLevelSet = new Set(requestedLevels);
         for (const level of AREA_LEVELS.filter((candidate) => !requestedLevelSet.has(candidate))) {
           const source = map.getSource(AREA_LAYERS[level].source) as GeoJSONSource;
           const emptyData = emptyFeatureCollection();
-          areaDataRef.current[level] = emptyData;
-          source.setData(emptyData);
+          if (level === "parcel") {
+            parcelRawFeaturesRef.current = emptyData;
+            parcelAllFeaturesRef.current = emptyData;
+            applyParcelSearchFilters();
+          } else {
+            areaDataRef.current[level] = emptyData;
+            source.setData(emptyData);
+          }
         }
         selectionSyncRef.current?.(selectedAreaRef.current);
         refreshMetricBubbles();
@@ -3634,8 +3910,12 @@ export function MapView({
       zoningOverlayController?.abort();
       zoningOverlayController = null;
       const sequence = ++zoningOverlaySequence;
-      if (!showZoningRef.current) {
+      const needsZoningData = showZoningRef.current || parcelFiltersRef.current.zoningCodes.length > 0;
+      if (!needsZoningData) {
         source.setData(emptyFeatureCollection());
+        zoningFeaturesRef.current = [];
+        parcelAllFeaturesRef.current = enrichParcelCollection(parcelRawFeaturesRef.current, [], areaDataRef.current);
+        applyParcelSearchFilters();
         return;
       }
 
@@ -3657,6 +3937,9 @@ export function MapView({
         const data = await response.json() as MapFeatureCollection;
         if (sequence !== zoningOverlaySequence || controller.signal.aborted) return;
         source.setData(data);
+        zoningFeaturesRef.current = (data.features ?? []) as MapFeatureCollection["features"];
+        parcelAllFeaturesRef.current = enrichParcelCollection(parcelRawFeaturesRef.current, zoningFeaturesRef.current, areaDataRef.current);
+        applyParcelSearchFilters();
       } catch (error) {
         if (controller.signal.aborted) return;
         console.error("Official zoning overlay failed.", error);
@@ -3666,10 +3949,14 @@ export function MapView({
 
     const scheduleZoningRefresh = () => {
       if (zoningOverlayTimer) clearTimeout(zoningOverlayTimer);
-      if (!showZoningRef.current) {
+      const needsZoningData = showZoningRef.current || parcelFiltersRef.current.zoningCodes.length > 0;
+      if (!needsZoningData) {
         zoningOverlayController?.abort();
         const source = map.getSource("zoning-overlay") as GeoJSONSource | undefined;
         source?.setData(emptyFeatureCollection());
+        zoningFeaturesRef.current = [];
+        parcelAllFeaturesRef.current = enrichParcelCollection(parcelRawFeaturesRef.current, [], areaDataRef.current);
+        applyParcelSearchFilters();
         return;
       }
       zoningOverlayTimer = setTimeout(() => void refreshZoningOverlay(), 220);
