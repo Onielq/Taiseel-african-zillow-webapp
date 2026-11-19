@@ -11,6 +11,9 @@ const KIGALI_ZONING_LAYER =
   "https://masterplan.kigalicity.gov.rw/server/rest/services/Masterplan2020/Masterplan2020_22Apr2026/MapServer/117";
 const BUGESERA_ZONING_LAYER =
   "https://geodata.rw/server/rest/services/masterplan/Bugesera_DLUP/FeatureServer/0";
+// C2 is published as a separate Kigali commercial overlay, not as a base-zone class.
+const KIGALI_C2_OVERLAY_LAYER =
+  "https://masterplan.kigalicity.gov.rw/server/rest/services/Masterplan2020/Masterplan2020_22Apr2026/MapServer/86";
 const KIGALI_EXTENT: Bounds = [29.58, -2.12, 30.32, -1.47];
 const BUGESERA_EXTENT: Bounds = [29.82, -2.62, 30.56, -1.92];
 
@@ -33,7 +36,7 @@ function intersect(a: Bounds, b: Bounds): Bounds | null {
   return result[0] < result[2] && result[1] < result[3] ? result : null;
 }
 
-async function queryZoningLayer(layerUrl: string, bounds: Bounds, source: "kigali" | "bugesera"): Promise<GeoJsonFeature[]> {
+async function queryZoningLayer(layerUrl: string, bounds: Bounds, source: "kigali" | "bugesera" | "kigali-c2"): Promise<GeoJsonFeature[]> {
   const result: GeoJsonFeature[] = [];
   const pageSize = 1500;
   for (let offset = 0; offset < 9000; offset += pageSize) {
@@ -72,7 +75,18 @@ async function queryZoningLayer(layerUrl: string, bounds: Bounds, source: "kigal
       properties.gen_lu,
       properties.land_use
     ].find((value) => typeof value === "string" && value.trim().length > 0);
-    const zoning = typeof zoneName === "string" ? zoneName.trim() : "Unclassified zoning";
+    const zoning = source === "kigali-c2"
+      ? "C2-Commercial neighbourhood overlay"
+      : typeof zoneName === "string" ? zoneName.trim() : "Unclassified zoning";
+    const rawZoneCode = source === "kigali-c2"
+      ? "C2"
+      : [properties.zone_code, properties.new_zoning, properties.zoning, properties.gen_lu, properties.land_use]
+          .find((value) => typeof value === "string" && value.trim().length > 0);
+    const zoningCodeMatch = typeof rawZoneCode === "string"
+      ? rawZoneCode.trim().toUpperCase().match(/^([A-Z]{1,3}[0-9]?[A-Z]?)(?:\\b|[-_\\s])/)
+        ?? rawZoneCode.trim().toUpperCase().match(/^([A-Z]{1,3}[0-9]?[A-Z]?)$/)
+      : null;
+    const zoningCode = zoningCodeMatch?.[1] ?? null;
     const id = feature.id ?? properties.objectid ?? properties.OBJECTID ?? properties.fid ?? index;
     return [{
       ...feature,
@@ -80,9 +94,17 @@ async function queryZoningLayer(layerUrl: string, bounds: Bounds, source: "kigal
       properties: {
         ...properties,
         zoning,
+        zoning_code: zoningCode,
+        zoning_condition: typeof properties.conditiona === "string" ? properties.conditiona.trim() : null,
+        zoning_prohibited: typeof properties.prohibited === "string" ? properties.prohibited.trim() : null,
+        zoning_buffer: typeof properties.buffer_zon === "string" ? properties.buffer_zon.trim() : null,
+        zoning_buffer_detail: typeof properties.buff_detai === "string" ? properties.buff_detai.trim() : null,
+        zoning_is_overlay: source === "kigali-c2",
         zoning_source: source === "kigali"
           ? "Kigali City Master Plan · Proposed Zoning Plan (22 April 2026 map service)"
-          : "National Land Authority / Geodata Rwanda · Bugesera DLUP zoning layer"
+          : source === "kigali-c2"
+            ? "Kigali City Master Plan · C2 Overlay (22 April 2026 map service)"
+            : "National Land Authority / Geodata Rwanda · Bugesera DLUP zoning layer"
       }
     }];
   });
@@ -97,6 +119,7 @@ export async function GET(request: Request): Promise<Response> {
 
   const jobs = [
     { id: "kigali" as const, url: KIGALI_ZONING_LAYER, extent: KIGALI_EXTENT },
+    { id: "kigali-c2" as const, url: KIGALI_C2_OVERLAY_LAYER, extent: KIGALI_EXTENT },
     { id: "bugesera" as const, url: BUGESERA_ZONING_LAYER, extent: BUGESERA_EXTENT }
   ].flatMap((source) => {
     const target = intersect(bounds, source.extent);
