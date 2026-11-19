@@ -22,9 +22,9 @@ const KIGALI_DISTRICTS = ["GASABO", "KICUKIRO", "NYARUGENGE"] as const;
 // (50,771 vs 50,865 RWF/m²); this route uses the named transaction-price value
 // and keeps the cross-page discrepancy documented.
 const DISTRICT_AVERAGE_TRANSACTION_PRICE_RWF_PER_M2: Record<string, number> = Object.fromEntries(
-  Object.entries(DISTRICT_LAND_PRICE_BENCHMARKS).map(([district, benchmark]) => [
+  Object.keys(DISTRICT_LAND_PRICE_BENCHMARKS).map((district) => [
     district.toUpperCase(),
-    benchmark.averageTransactionPricePerM2
+    DISTRICT_LAND_PRICE_BENCHMARKS[district].averageTransactionPricePerM2
   ])
 ) as Record<string, number>;
 const DISTRICT_TRANSACTION_PRICE_SOURCE = LAND_PRICE_BENCHMARK_SOURCE;
