@@ -82,10 +82,10 @@ async function queryZoningLayer(layerUrl: string, bounds: Bounds, source: "kigal
       ? "C2"
       : [properties.zone_code, properties.new_zoning, properties.zoning, properties.gen_lu, properties.land_use]
           .find((value) => typeof value === "string" && value.trim().length > 0);
-    const zoningCodeMatch = typeof rawZoneCode === "string"
-      ? rawZoneCode.trim().toUpperCase().match(/^([A-Z]{1,3}[0-9]?[A-Z]?)(?:\\b|[-_\\s])/)
-        ?? rawZoneCode.trim().toUpperCase().match(/^([A-Z]{1,3}[0-9]?[A-Z]?)$/)
-      : null;
+    const rawZoneValue = typeof rawZoneCode === "string" ? rawZoneCode.trim().toUpperCase() : "";
+    // Only accept a code at the start of a published class label or an exact code.
+    // Do not turn labels such as "Unclassified zoning" into a false zone code.
+    const zoningCodeMatch = rawZoneValue.match(/^([A-Z]{1,3}[0-9]?[A-Z]?)(?:-|_|$)/);
     const zoningCode = zoningCodeMatch?.[1] ?? null;
     const id = feature.id ?? properties.objectid ?? properties.OBJECTID ?? properties.fid ?? index;
     return [{
