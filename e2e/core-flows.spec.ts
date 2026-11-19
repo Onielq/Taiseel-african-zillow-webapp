@@ -294,7 +294,7 @@ test('zoning, plot-size and price filters change the cadastral parcel results', 
 
   await search.locator('#priceBtn').click();
   await search.locator('#priceMin').fill('19000000');
-  await search.locator('#pricePanel .dp-apply').click();
+  await search.locator('#bodyListPrice .dp-apply').click();
   await expect(search.locator('#parcelMapResults')).toContainText('0 of 1 mapped parcels');
   await expect(search.locator('#priceDomainMax')).not.toHaveText('RWF 1B+');
 });
