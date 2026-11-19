@@ -1593,8 +1593,31 @@ document.addEventListener('DOMContentLoaded', function () {
  const savedLabel = document.querySelector('.saved-label');
  const readArray = key => { try { const parsed = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(parsed) ? parsed : []; } catch { return []; } };
  const writeArray = (key, list) => { try { localStorage.setItem(key, JSON.stringify(list)); } catch {} };
- const activeMinimum = () => Number((document.getElementById('priceMin')?.value || '').replace(/[^0-9.]/g,'')) || 0;
- const activeMaximum = () => Number((document.getElementById('priceMax')?.value || '').replace(/[^0-9.]/g,'')) || Infinity;
+ const activePriceMode = () => document.getElementById('tabMonthly')?.classList.contains('active') ? 'monthly' : 'list';
+ const parseFilterNumber = id => {
+   const raw = String(document.getElementById(id)?.value ?? '').trim().replace(/[^0-9.]/g, '');
+   if (!raw) return null;
+   const value = Number(raw);
+   return Number.isFinite(value) && value >= 0 ? value : null;
+ };
+ const activeMinimum = () => parseFilterNumber(activePriceMode() === 'monthly' ? 'mpMin' : 'priceMin') ?? 0;
+ const activeMaximum = () => parseFilterNumber(activePriceMode() === 'monthly' ? 'mpMax' : 'priceMax') ?? Infinity;
+ const applyParcelMapFilters = () => {
+   const priceMode = activePriceMode();
+   const selectedZones = [...document.querySelectorAll('.zone-option.active')].map(button => button.dataset.zone).filter(Boolean);
+   const filters = {
+     zoningCodes: selectedZones,
+     minAreaM2: parseFilterNumber('areaMin'),
+     maxAreaM2: parseFilterNumber('areaMax'),
+     minPriceRwf: parseFilterNumber(priceMode === 'monthly' ? 'mpMin' : 'priceMin'),
+     maxPriceRwf: parseFilterNumber(priceMode === 'monthly' ? 'mpMax' : 'priceMax'),
+     priceMode,
+     downPaymentRwf: parseFilterNumber('monthlyDownPayment') ?? 0,
+     annualInterestRatePercent: parseFilterNumber('monthlyInterestRate'),
+     loanTermYears: parseFilterNumber('monthlyLoanTerm')
+   };
+   window.applyParcelMapFilters?.(filters);
+ };
  const activePillValue = id => {
    const active = document.querySelector('#' + id + ' .pill.active')?.dataset.val || 'any';
    return active === 'any' ? 0 : Number(active.replace('+',''));
@@ -1614,21 +1637,26 @@ document.addEventListener('DOMContentLoaded', function () {
      const queryMatch = terms.every(term => text.includes(term));
      const categoryMatch = card.dataset.category === currentCategory;
      const price = Number(card.dataset.price || 0);
-     const priceMatch = price >= min && price <= max;
-     const bedMatch = Number(card.dataset.beds || 0) >= minBeds;
-     const bathMatch = Number(card.dataset.baths || 0) >= minBaths;
+     const priceMatch = activePriceMode() === 'monthly' || (price >= min && price <= max);
+     const beds = Number(card.dataset.beds || 0);
+     const baths = Number(card.dataset.baths || 0);
+     const exactBed = document.getElementById('exactBed')?.checked === true;
+     const bedMatch = exactBed && minBeds > 0 ? beds === minBeds : beds >= minBeds;
+     const bathMatch = baths >= minBaths;
      const typeMatch = selectedTypes.length === 0 || selectedTypes.includes(typeFor(card.dataset.type || 'House'));
      const visible = queryMatch && categoryMatch && priceMatch && bedMatch && bathMatch && typeMatch;
      card.hidden = !visible;
      if (visible) count++;
    });
    if (resultCount) resultCount.textContent = count + ' illustrative listing' + (count === 1 ? '' : 's');
+   applyParcelMapFilters();
  };
+ window.refreshParcelFilters = applyFilters;
  if (input) input.addEventListener('input', applyFilters);
  applyFilters();
  const originalSetForSale = window.setForSale;
  if (originalSetForSale) window.setForSale = function (radio) { originalSetForSale(radio); applyFilters(); };
- ['applyPrice','applyBedBath','applyPropertyType'].forEach(name => {
+ ['applyPrice','applyMonthlyPrice','applyZoningFilter','applyPlotSize','applyBedBath','applyPropertyType'].forEach(name => {
    const original = window[name];
    if (original) window[name] = function () { original(); applyFilters(); };
  });
@@ -1685,6 +1713,9 @@ document.addEventListener('DOMContentLoaded', function () {
      query: input?.value.trim() || 'Kigali, Rwanda',
      min: document.getElementById('priceMin')?.value || '',
      max: document.getElementById('priceMax')?.value || '',
+     zoningCodes: [...document.querySelectorAll('.zone-option.active')].map(button => button.dataset.zone),
+     minAreaM2: document.getElementById('areaMin')?.value || '',
+     maxAreaM2: document.getElementById('areaMax')?.value || '',
      beds: activePillValue('bedPills'),
      baths: activePillValue('bathPills'),
      types: [], parking: false, furnished: false, savedAt: new Date().toISOString()
