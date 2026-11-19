@@ -175,62 +175,173 @@ body {
 .dp-apply { width: 100%; height: 38px; background: var(--blue); color: #fff; border: none; border-radius: 5px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
 .dp-apply:hover { background: var(--blue-hover); }
 
-/* ── PRICE DROPDOWN ── */
-.price-panel { min-width: 440px; padding: 0; }
-.price-tabs { display: flex; border-bottom: 1px solid var(--gray-border); }
-.price-tab {
-  flex: 1; height: 40px; display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent;
-  transition: border-color .15s; color: var(--text-light); margin-bottom: -1px;
-}
-.price-tab.active { border-bottom-color: var(--text); color: var(--text); font-weight: 600; }
-.price-body { padding: 16px; }
-.buyability-row {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
-  font-size: 12.5px; color: var(--text-light);
-}
-.buyability-icon {
-  width: 18px; height: 18px; background: var(--blue); border-radius: 3px;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.buyability-icon svg { fill: #fff; width: 11px; height: 11px; }
-.buyability-edit { margin-left: auto; color: var(--blue); font-weight: 600; cursor: pointer; font-size: 12.5px; }
-.buyability-edit:hover { text-decoration: underline; }
-/* histogram */
-.histogram { display: flex; align-items: flex-end; gap: 2px; height: 48px; margin-bottom: 8px; }
-.histogram-bar { flex: 1; background: var(--blue); border-radius: 2px 2px 0 0; min-height: 2px; opacity: 0.75; }
-/* range slider */
-.range-wrap { position: relative; height: 20px; margin-bottom: 14px; }
-.range-track { position: absolute; top: 50%; transform: translateY(-50%); left: 0; right: 0; height: 3px; background: var(--gray-border); border-radius: 2px; }
-.range-fill { position: absolute; top: 50%; transform: translateY(-50%); height: 3px; background: var(--blue); border-radius: 2px; }
-.range-thumb {
-  position: absolute; top: 50%; transform: translate(-50%, -50%);
-  width: 16px; height: 16px; background: #fff; border: 2px solid var(--blue);
-  border-radius: 50%; cursor: pointer; z-index: 2;
-}
-.range-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--gray-mid); margin-bottom: 14px; }
-.price-inputs { display: flex; align-items: center; gap: 8px; }
-.price-input-wrap { flex: 1; }
-.price-input-wrap label { font-size: 11px; color: var(--text-light); font-weight: 600; display: block; margin-bottom: 4px; }
-.price-input-wrap input {
-  width: 100%; height: 36px; border: 1px solid var(--gray-border); border-radius: 4px;
-  padding: 0 10px; font-size: 13px; font-family: inherit; outline: none;
-}
-.price-input-wrap input:focus { border-color: var(--blue); }
-.price-input-dash { color: var(--gray-mid); margin-top: 18px; }
-/* monthly payment tab */
-.mp-field { margin-bottom: 14px; }
-.mp-field label { font-size: 12px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
-.mp-field label .help-icon { color: var(--gray-mid); cursor: help; font-size: 11px; }
-.mp-select {
-  width: 100%; height: 36px; border: 1px solid var(--gray-border); border-radius: 4px;
-  padding: 0 10px; font-size: 13px; font-family: inherit; appearance: none;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23555'/%3E%3C/svg%3E") no-repeat right 10px center;
-  cursor: pointer; outline: none;
-}
-.mp-sub { font-size: 11px; color: var(--text-light); margin-top: 4px; line-height: 1.4; }
+/* ── PRICE ────────────────────────────────────────────────── */
+   let priceDomainMax = 0;
+   let minPct = 0, maxPct = 100;
+   const thumbMin = document.getElementById('thumbMin');
+   const thumbMax = document.getElementById('thumbMax');
+   const rangeFill = document.getElementById('rangeFill');
+   const rangeWrap = document.getElementById('rangeWrap');
+   const priceMinInput = document.getElementById('priceMin');
+   const priceMaxInput = document.getElementById('priceMax');
+   const histogram = document.getElementById('histogram');
+   const parseAmount = value => {
+     const raw = String(value ?? '').trim().replace(/[^0-9.]/g, '');
+     if (!raw) return null;
+     const number = Number(raw);
+     return Number.isFinite(number) && number >= 0 ? number : null;
+   };
+   const formatShortRwf = value => 'RWF ' + new Intl.NumberFormat('en', {
+     notation: 'compact', maximumFractionDigits: 1
+   }).format(value).replace(/([kmbt])$/i, suffix => suffix.toUpperCase());
+   const updateSliderFill = () => {
+     rangeFill.style.left = minPct + '%';
+     rangeFill.style.right = (100 - maxPct) + '%';
+     thumbMin.style.left = minPct + '%';
+     thumbMax.style.left = maxPct + '%';
+     thumbMin.setAttribute('aria-valuemax', String(Math.round(priceDomainMax)));
+     thumbMax.setAttribute('aria-valuemax', String(Math.round(priceDomainMax)));
+     thumbMin.setAttribute('aria-valuenow', String(Math.round(priceDomainMax * minPct / 100)));
+     thumbMax.setAttribute('aria-valuenow', String(Math.round(priceDomainMax * maxPct / 100)));
+   };
+   const syncSliderFromInputs = () => {
+     if (priceDomainMax <= 0) return;
+     const min = parseAmount(priceMinInput.value);
+     const max = parseAmount(priceMaxInput.value);
+     minPct = min === null ? 0 : Math.max(0, Math.min(100, min / priceDomainMax * 100));
+     maxPct = max === null ? 100 : Math.max(0, Math.min(100, max / priceDomainMax * 100));
+     if (minPct > maxPct - 2) minPct = Math.max(0, maxPct - 2);
+     updateSliderFill();
+   };
+   const syncInputsFromSlider = () => {
+     if (priceDomainMax <= 0) return;
+     priceMinInput.value = minPct < 0.5 ? '' : String(Math.round(priceDomainMax * minPct / 100));
+     priceMaxInput.value = maxPct > 99.5 ? '' : String(Math.round(priceDomainMax * maxPct / 100));
+     window.updatePriceLabel();
+   };
+   const moveThumb = (isMin, clientX) => {
+     const bounds = rangeWrap.getBoundingClientRect();
+     if (!bounds.width || priceDomainMax <= 0) return;
+     const percentage = Math.max(0, Math.min(100, (clientX - bounds.left) / bounds.width * 100));
+     if (isMin) minPct = Math.min(percentage, maxPct - 2);
+     else maxPct = Math.max(percentage, minPct + 2);
+     updateSliderFill();
+     syncInputsFromSlider();
+   };
+   [[thumbMin, true], [thumbMax, false]].forEach(([thumb, isMin]) => {
+     let dragging = false;
+     thumb.addEventListener('pointerdown', event => {
+       dragging = true;
+       thumb.setPointerCapture(event.pointerId);
+       event.preventDefault();
+     });
+     thumb.addEventListener('pointermove', event => {
+       if (dragging) moveThumb(isMin, event.clientX);
+     });
+     const stop = () => { dragging = false; };
+     thumb.addEventListener('pointerup', stop);
+     thumb.addEventListener('pointercancel', stop);
+     thumb.addEventListener('keydown', event => {
+       if (!['ArrowLeft','ArrowDown','ArrowRight','ArrowUp','Home','End'].includes(event.key) || priceDomainMax <= 0) return;
+       event.preventDefault();
+       const increment = Math.max(1, priceDomainMax / 100);
+       let value = priceDomainMax * (isMin ? minPct : maxPct) / 100;
+       if (event.key === 'Home') value = 0;
+       else if (event.key === 'End') value = priceDomainMax;
+       else value += (event.key === 'ArrowRight' || event.key === 'ArrowUp' ? increment : -increment);
+       const percentage = Math.max(0, Math.min(100, value / priceDomainMax * 100));
+       if (isMin) minPct = Math.min(percentage, maxPct - 2);
+       else maxPct = Math.max(percentage, minPct + 2);
+       updateSliderFill();
+       syncInputsFromSlider();
+     });
+   });
+   window.setParcelPriceDomain = function(maximum, bars) {
+     priceDomainMax = typeof maximum === 'number' && Number.isFinite(maximum) && maximum > 0 ? maximum : 0;
+     const label = document.getElementById('priceDomainMax');
+     label.textContent = priceDomainMax > 0 ? formatShortRwf(priceDomainMax) + '+' : 'No price data in this view';
+     thumbMin.setAttribute('aria-valuemin', '0');
+     thumbMax.setAttribute('aria-valuemin', '0');
+     thumbMin.setAttribute('aria-valuemax', String(Math.round(priceDomainMax)));
+     thumbMax.setAttribute('aria-valuemax', String(Math.round(priceDomainMax)));
+     thumbMin.style.opacity = priceDomainMax > 0 ? '1' : '.45';
+     thumbMax.style.opacity = priceDomainMax > 0 ? '1' : '.45';
+     histogram.innerHTML = '';
+     const values = Array.isArray(bars) ? bars : [];
+     const maxBar = Math.max(1, ...values);
+     (values.length ? values : Array.from({ length: 24 }, () => 0)).forEach(value => {
+       const bar = document.createElement('div');
+       bar.className = 'histogram-bar';
+       bar.style.height = Math.max(2, value / maxBar * 100) + '%';
+       histogram.appendChild(bar);
+     });
+     syncSliderFromInputs();
+     updateSliderFill();
+   };
+   window.setPriceTab = function(tab) {
+     document.getElementById('tabListPrice').classList.toggle('active', tab === 'list');
+     document.getElementById('tabMonthly').classList.toggle('active', tab === 'monthly');
+     document.getElementById('bodyListPrice').style.display = tab === 'list' ? '' : 'none';
+     document.getElementById('bodyMonthly').style.display  = tab === 'monthly' ? '' : 'none';
+     window.updatePriceLabel();
+     if (window.refreshParcelFilters) window.refreshParcelFilters();
+   };
+   window.updatePriceLabel = function() {
+     const monthly = document.getElementById('tabMonthly').classList.contains('active');
+     const min = (monthly ? document.getElementById('mpMin') : priceMinInput).value.trim();
+     const max = (monthly ? document.getElementById('mpMax') : priceMaxInput).value.trim();
+     const hasRange = Boolean(min || max);
+     const label = hasRange ? (monthly ? 'Monthly ' : '') + (min || 'Any') + ' – ' + (max || 'Any') : 'Price';
+     document.getElementById('priceLabel').textContent = label;
+     document.getElementById('priceBtn').classList.toggle('active-filter', hasRange);
+     if (!monthly) syncSliderFromInputs();
+   };
+   window.resetPriceRange = function() {
+     ['priceMin','priceMax','mpMin','mpMax'].forEach(id => { document.getElementById(id).value = ''; });
+     minPct = 0; maxPct = 100;
+     updateSliderFill();
+     window.updatePriceLabel();
+   };
+   window.applyPrice = function() { window.setPriceTab('list'); window.updatePriceLabel(); closeAll(); };
+   window.applyMonthlyPrice = function() {
+     const rate = parseAmount(document.getElementById('monthlyInterestRate').value);
+     const term = parseAmount(document.getElementById('monthlyLoanTerm').value);
+     const hint = document.getElementById('monthlyModelHint');
+     if (rate === null || term === null || term <= 0) {
+       hint.textContent = 'Enter an annual interest rate and loan term before filtering monthly payments.';
+       return;
+     }
+     hint.textContent = 'Monthly payment uses your entered rate, term and down payment. Fees and lender conditions are not included.';
+     window.updatePriceLabel();
+     closeAll();
+   };
 
-/* ── BEDS & BATHS ── */
+   /* ── ZONING AND PLOT SIZE ─────────────────────────────────── */
+   document.querySelectorAll('.zone-option').forEach(button => {
+     button.addEventListener('click', () => button.classList.toggle('active'));
+   });
+   window.toggleOtherZoning = function() {
+     const options = document.getElementById('otherZoneOptions');
+     const open = options.hidden;
+     options.hidden = !open;
+     document.getElementById('otherZoneToggle').textContent = open ? 'Other zoning ▴' : 'Other zoning ▾';
+   };
+   window.applyZoningFilter = function() {
+     const selected = [...document.querySelectorAll('.zone-option.active')].map(button => button.dataset.zone);
+     document.getElementById('zoningLabel').textContent = selected.length ? 'Zoning (' + selected.length + ')' : 'Zoning';
+     document.getElementById('zoningBtn').classList.toggle('active-filter', selected.length > 0);
+     closeAll();
+   };
+   window.applyPlotSize = function() {
+     const min = document.getElementById('areaMin').value.trim();
+     const max = document.getElementById('areaMax').value.trim();
+     const label = min || max ? 'Plot size (' + (min || 'Any') + '–' + (max || 'Any') + ' m²)' : 'Plot size';
+     document.getElementById('areaLabel').textContent = label;
+     document.getElementById('areaBtn').classList.toggle('active-filter', Boolean(min || max));
+     closeAll();
+   };
+
+   /* ── BEDS & BATHS ── */
 .bb-panel { min-width: 340px; padding: 16px; }
 .bb-section-title { font-size: 12px; font-weight: 700; color: var(--text); letter-spacing: 0.02em; margin-bottom: 10px; }
 .bb-pills { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
