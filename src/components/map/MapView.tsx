@@ -113,6 +113,7 @@ export type ParcelZoningEntry = {
   condition: string | null;
   prohibited: string | null;
   buffer: string | null;
+  source?: string | null;
   /** True when a single published source record explicitly lists multiple zone codes together. */
   sourceListsMultipleCodes?: boolean;
 };
@@ -1249,11 +1250,15 @@ function interiorSamplePoint(feature: MapGeoJSONFeature): [number, number] | nul
 }
 function zoningCodeFromFeature(feature: MapFeatureCollection["features"][number]): string | null {
   const properties = feature.properties ?? {};
-  const raw = properties.zoning_code ?? properties.zone_code ?? properties.zoning;
-  if (typeof raw !== "string" || !raw.trim()) return null;
-  const value = raw.trim().toUpperCase();
-  const match = value.match(/^([A-Z]{1,3}[0-9]?[A-Z]?)(?:\\b|[-_\\s])/) ?? value.match(/^([A-Z]{1,3}[0-9]?[A-Z]?)$/);
-  return match?.[1] ?? null;
+  const rawCode = properties.zoning_code ?? properties.zone_code;
+  if (typeof rawCode === "string" && rawCode.trim()) {
+    const exactCode = rawCode.trim().toUpperCase();
+    return /^[A-Z]{1,3}[0-9]?[A-Z]?$/.test(exactCode) ? exactCode : null;
+  }
+  // Fallback only to coded master-plan labels such as "R1-Low density...".
+  // Descriptive values such as "Unclassified zoning" must remain unclassified.
+  const label = typeof properties.zoning === "string" ? properties.zoning.trim().toUpperCase() : "";
+  return label.match(/^([A-Z]{1,3}[0-9]?[A-Z]?)(?:-|_)/)?.[1] ?? null;
 }
 function zoningEntriesForParcel(
   parcel: MapFeatureCollection["features"][number],
@@ -1273,6 +1278,7 @@ function zoningEntriesForParcel(
       buffer: typeof properties.zoning_buffer_detail === "string"
         ? properties.zoning_buffer_detail
         : typeof properties.zoning_buffer === "string" ? properties.zoning_buffer : null,
+      source: typeof properties.zoning_source === "string" ? properties.zoning_source : null,
       sourceListsMultipleCodes: false
     } satisfies ParcelZoningEntry];
   });
@@ -1337,7 +1343,7 @@ function enrichParcelCollection(
           zoning_codes: zoningCodes,
           zoning_entries: zoningEntries,
           zoning_status: ambiguous ? "ambiguous" : zoningEntries.length > 0 ? "found" : zoningFeatures.length > 0 ? "not-covered" : "unavailable",
-          zoning_source: zoningEntries.map((entry) => entry.name).filter(Boolean).join(" · ") || (zoningFeatures.length === 0 ? "Official zoning service unavailable for this viewport" : null),
+          zoning_source: Array.from(new Set(zoningEntries.map((entry) => entry.source).filter((source): source is string => Boolean(source)))).join(" · ") || (zoningFeatures.length === 0 ? "Official zoning service unavailable for this viewport" : null),
           parcel_size_filter_m2: filterArea,
           parcel_size_filter_source: areaSource,
           parcel_price_filter_value_rwf: estimatedPrice,
@@ -3944,6 +3950,9 @@ export function MapView({
         if (controller.signal.aborted) return;
         console.error("Official zoning overlay failed.", error);
         source.setData(emptyFeatureCollection());
+        zoningFeaturesRef.current = [];
+        parcelAllFeaturesRef.current = enrichParcelCollection(parcelRawFeaturesRef.current, [], areaDataRef.current);
+        applyParcelSearchFilters();
       }
     };
 
