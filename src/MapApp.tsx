@@ -6,6 +6,9 @@ import {
   type BasemapStatus,
   type BoundaryStatus,
   type MapOverlayCategory,
+  type ParcelSearchFilters,
+  type ParcelInventoryStats,
+  EMPTY_PARCEL_SEARCH_FILTERS,
   type SelectedArea
 } from "./components/map/MapView";
 import type { RwandaProjectRecord } from "./data/project-directory";
@@ -16,12 +19,14 @@ type ParentCommand =
   | { source: "taiseel-map-controls"; type: "basemap"; value: BasemapMode }
   | { source: "taiseel-map-controls"; type: "layer"; category: MapOverlayCategory; enabled: boolean }
   | { source: "taiseel-map-controls"; type: "zoning"; enabled: boolean }
+  | { source: "taiseel-map-controls"; type: "parcel-filters"; filters: ParcelSearchFilters }
   | { source: "taiseel-map-controls"; type: "draw"; enabled: boolean }
   | { source: "taiseel-map-controls"; type: "remove-boundary" };
 
 type ParentEvent =
   | { source: "taiseel-map-engine"; type: "basemap-status"; status: BasemapStatus }
   | { source: "taiseel-map-engine"; type: "boundary-status"; status: BoundaryStatus }
+  | { source: "taiseel-map-engine"; type: "parcel-inventory-stats"; stats: ParcelInventoryStats }
   | { source: "taiseel-map-engine"; type: "draw-state"; enabled: boolean }
   | { source: "taiseel-map-engine"; type: "draw-complete" }
   | { source: "taiseel-map-engine"; type: "boundary-removed" }
@@ -29,6 +34,8 @@ type ParentEvent =
       level: AreaLevel; name: string; district: string; sector: string | null;
       cell: string | null; village: string | null; upi: string | null;
       parcelNumber: string | null; parcelSizeM2: number | null; sourceLabel: string | null;
+      zoning: SelectedArea["zoning"]; zoningStatus: SelectedArea["zoningStatus"];
+      zoningSource: SelectedArea["zoningSource"];
     } | null };
 
 const NO_PROJECTS: RwandaProjectRecord[] = [];
@@ -55,7 +62,10 @@ function selectedAreaEvent(area: SelectedArea | null): ParentEvent {
       upi: area.upi ?? null,
       parcelNumber: area.parcelNumber ?? null,
       parcelSizeM2: area.parcelSizeM2 ?? null,
-      sourceLabel: area.sourceLabel ?? null
+      sourceLabel: area.sourceLabel ?? null,
+      zoning: area.zoning ?? null,
+      zoningStatus: area.zoningStatus ?? null,
+      zoningSource: area.zoningSource ?? null
     } : null
   };
 }
@@ -109,6 +119,7 @@ export default function MapApp() {
   const [basemapMode, setBasemapMode] = useState<BasemapMode>("map");
   const [showLayers, setShowLayers] = useState<MapOverlayCategory[]>(["landmarks"]);
   const [showZoning, setShowZoning] = useState(false);
+  const [parcelFilters, setParcelFilters] = useState<ParcelSearchFilters>(EMPTY_PARCEL_SEARCH_FILTERS);
   const [selectedArea, setSelectedArea] = useState<SelectedArea | null>(null);
   const [basemapStatus, setBasemapStatus] = useState<BasemapStatus>("loading");
   const [boundaryStatus, setBoundaryStatus] = useState<BoundaryStatus>("loading");
@@ -139,6 +150,10 @@ export default function MapApp() {
     notifyParent(selectedAreaEvent(area));
   }, []);
 
+  const onParcelInventoryStats = useCallback((stats: ParcelInventoryStats) => {
+    notifyParent({ source: "taiseel-map-engine", type: "parcel-inventory-stats", stats });
+  }, []);
+
   useEffect(() => {
     const handleMessage = (event: MessageEvent<ParentCommand>) => {
       if (event.origin !== window.location.origin || !event.data || event.data.source !== "taiseel-map-controls") return;
@@ -150,6 +165,7 @@ export default function MapApp() {
           : current.filter(category => category !== command.category));
       }
       if (command.type === "zoning") setShowZoning(command.enabled);
+      if (command.type === "parcel-filters") setParcelFilters(command.filters);
       if (command.type === "draw") {
         drawPointsRef.current = [];
         drawingRef.current = command.enabled;
@@ -248,6 +264,8 @@ export default function MapApp() {
         selectedMetric="averageLandPricePerM2"
         showLayers={showLayers}
         showZoning={showZoning}
+        parcelFilters={parcelFilters}
+        onParcelInventoryStats={onParcelInventoryStats}
         showScope="pilot"
         onMapReady={onMapReady}
         onStatusChange={onBasemapStatus}
@@ -274,6 +292,21 @@ export default function MapApp() {
               {selectedArea.upi ? <span>UPI: {selectedArea.upi}</span> : null}
               {selectedArea.parcelSizeM2 ? <span>{selectedArea.parcelSizeM2.toLocaleString("en")} m²</span> : null}
               <small>{selectedArea.sourceLabel || "Cadastral source information not supplied"}</small>
+              {selectedArea.zoning?.length ? (
+                <div className="map-selection-zoning">
+                  <strong>Planning designation</strong>
+                  {selectedArea.zoning.map((entry, index) => (
+                    <div key={(entry.code ?? entry.name) + "-" + index}>
+                      <span>{entry.code ? entry.code + " · " : ""}{entry.name}</span>
+                      {entry.condition ? <small>Condition: {entry.condition}</small> : null}
+                      {entry.prohibited ? <small>Prohibited: {entry.prohibited}</small> : null}
+                      {entry.buffer ? <small>Buffer: {entry.buffer}</small> : null}
+                    </div>
+                  ))}
+                </div>
+              ) : selectedArea.zoningStatus === "not-covered" ? <small>Zoning classification not published for this parcel in the current source</small>
+                : selectedArea.zoningStatus === "ambiguous" ? <small>Overlapping base-zone records need source review; no single zone is assumed</small>
+                : <small>Parcel-level zoning record unavailable in this viewport</small>}
             </div>
           ) : (
             <small>Administrative boundary · Not proof of parcel title or ownership</small>
