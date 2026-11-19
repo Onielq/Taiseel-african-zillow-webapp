@@ -117,7 +117,7 @@ export type ParcelZoningEntry = {
   /** True when a single published source record explicitly lists multiple zone codes together. */
   sourceListsMultipleCodes?: boolean;
 };
-export type ParcelZoningStatus = "loading" | "found" | "not-covered" | "error" | "unavailable";
+export type ParcelZoningStatus = "loading" | "found" | "not-covered" | "error" | "unavailable" | "ambiguous";
 
 export type SelectedArea = {
   level: AreaLevel;
@@ -197,6 +197,7 @@ type AreaProperties = {
   map_feature_id?: string;
   zoning?: string | null;
   zoning_code?: string | null;
+  zone_code?: string | null;
   zoning_codes?: string[];
   zoning_entries?: ParcelZoningEntry[];
   zoning_status?: ParcelZoningStatus | "ambiguous" | null;
@@ -1227,15 +1228,6 @@ function featureToArea(
   };
 }
 
-function polygonContainsPoint(point: [number, number], polygon: number[][][]): boolean {
-  if (!polygon.length || !ringContainsPoint(point, polygon[0])) return false;
-  return !polygon.slice(1).some((hole) => ringContainsPoint(point, hole));
-}
-function geometryContainsPoint(point: [number, number], geometry: Geometry): boolean {
-  if (geometry.type === "Polygon") return polygonContainsPoint(point, geometry.coordinates as number[][][]);
-  if (geometry.type === "MultiPolygon") return (geometry.coordinates as number[][][][]).some((polygon) => polygonContainsPoint(point, polygon));
-  return false;
-}
 function interiorSamplePoint(feature: MapGeoJSONFeature): [number, number] | null {
   const bounds = featureBounds(feature);
   if (!bounds) return null;
@@ -1267,7 +1259,7 @@ function zoningEntriesForParcel(
   const point = interiorSamplePoint(parcel as unknown as MapGeoJSONFeature);
   if (!point) return [];
   const entries = zoningFeatures.flatMap((feature) => {
-    if (!feature.geometry || !geometryContainsPoint(point, feature.geometry)) return [];
+    if (!feature.geometry || !geometryContainsPoint(feature.geometry, point)) return [];
     const properties = feature.properties ?? {};
     const code = zoningCodeFromFeature(feature);
     return [{
@@ -1394,7 +1386,9 @@ function parcelInventoryStats(collection: MapFeatureCollection, filters: ParcelS
   const maxPriceRwf = priceValues.length ? Math.max(...priceValues) : null;
   const histogram = Array.from({ length: 24 }, () => 0);
   for (const value of priceValues) {
-    const index = maxPriceRwf === null || maxPriceRwf === minPriceRwf ? 0 : Math.min(23, Math.floor(((value - minPriceRwf) / (maxPriceRwf - minPriceRwf)) * 24));
+    const index = minPriceRwf === null || maxPriceRwf === null || maxPriceRwf === minPriceRwf
+      ? 0
+      : Math.min(23, Math.floor(((value - minPriceRwf) / (maxPriceRwf - minPriceRwf)) * 24));
     histogram[index] += 1;
   }
   const monthlyInputsComplete =
