@@ -119,6 +119,22 @@ body {
 .filter-btn.active-filter {
   border-color: var(--text); font-weight: 600;
 }
+.filter-wrap { flex-shrink: 0; }
+.zoning-panel { min-width: 286px; max-width: 340px; padding: 14px; }
+.area-panel { min-width: 270px; padding: 16px; }
+.zone-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.zone-option, .other-zone-toggle {
+  min-height: 34px; border: 1px solid var(--gray-border); border-radius: 4px;
+  background: #fff; color: var(--text); font: 600 12px inherit; cursor: pointer;
+}
+.zone-option.active { border-color: var(--blue); background: #eef5ff; color: #064fc7; }
+.other-zone-toggle { width: 100%; margin: 12px 0 8px; padding: 0 10px; text-align: left; }
+.zone-help { font-size: 10.5px; line-height: 1.45; color: var(--text-light); margin-top: 10px; }
+.area-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.area-inputs label { display: block; font-size: 11px; font-weight: 600; margin-bottom: 5px; }
+.area-inputs input { width: 100%; height: 36px; padding: 0 9px; border: 1px solid var(--gray-border); border-radius: 4px; font: 13px inherit; }
+.parcel-map-results { margin-top: 8px; color: var(--text-light); font-size: 11px; line-height: 1.4; }
+
 
 .save-btn {
   height: 36px; padding: 0 14px; background: var(--blue); color: #fff; border: none;
@@ -684,30 +700,31 @@ body {
           <div class="buyability-icon">
             <svg viewBox="0 0 16 16"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 3a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm1 8H7V7h2v5z"/></svg>
           </div>
-          <span>Your BuyAbility℠ <span style="color:#aaa;font-size:11px">?</span></span>
-          <span class="buyability-edit" onclick="openBuyAbility()">Edit</span>
+          <span>Parcel price estimate</span>
+          <span class="buyability-edit" onclick="resetPriceRange()">Reset</span>
         </div>
-        <!-- histogram bars: heights approximate real zillow distribution -->
+        <!-- Histogram is populated from the current cadastral parcel viewport. -->
         <div class="histogram" id="histogram"></div>
         <div class="range-wrap" id="rangeWrap">
           <div class="range-track"></div>
           <div class="range-fill" id="rangeFill" style="left:0%;right:0%"></div>
-          <div class="range-thumb" id="thumbMin" style="left:0%"></div>
-          <div class="range-thumb" id="thumbMax" style="left:100%"></div>
+          <div class="range-thumb" id="thumbMin" role="slider" tabindex="0" aria-label="Minimum price" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" style="left:0%"></div>
+          <div class="range-thumb" id="thumbMax" role="slider" tabindex="0" aria-label="Maximum price" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" style="left:100%"></div>
         </div>
-        <div class="range-labels"><span>RWF 0</span><span>RWF 1B+</span></div>
+        <div class="range-labels"><span>RWF 0</span><span id="priceDomainMax">Waiting for map data</span></div>
         <div class="price-inputs">
           <div class="price-input-wrap">
             <label>Min</label>
-            <input type="text" id="priceMin" placeholder="No min" oninput="updatePriceLabel()">
+            <input type="text" id="priceMin" inputmode="numeric" placeholder="No min" oninput="updatePriceLabel()">
           </div>
           <span class="price-input-dash">–</span>
           <div class="price-input-wrap">
             <label>Max</label>
-            <input type="text" id="priceMax" placeholder="No max" oninput="updatePriceLabel()">
+            <input type="text" id="priceMax" inputmode="numeric" placeholder="No max" oninput="updatePriceLabel()">
           </div>
         </div>
-        <div class="dp-apply-row" style="padding-top:14px"><button class="dp-apply" onclick="applyPrice()">Apply</button></div>
+        <p class="mp-sub" style="margin-top:12px">Price signals are calculated from mapped parcel size and available transaction-price references where possible. They are not verified sale listings or asking prices.</p>
+        <div class="dp-apply-row" style="padding-top:14px"><button class="dp-apply" onclick="applyPrice()">See matching parcels</button></div>
       </div>
 
       <!-- Monthly Payment body -->
