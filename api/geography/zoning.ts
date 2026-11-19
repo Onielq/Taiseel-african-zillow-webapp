@@ -52,13 +52,17 @@ async function queryZoningLayer(layerUrl: string, bounds: Bounds, source: "kigal
       returnGeometry: "true",
       resultOffset: String(offset),
       resultRecordCount: String(pageSize),
+      orderByFields: "objectid ASC",
       f: "geojson"
     });
     const response = await fetch(layerUrl + "/query?" + params.toString(), {
       headers: { Accept: "application/geo+json, application/json" },
       signal: AbortSignal.timeout(15_000)
     });
-    if (!response.ok) throw new Error(source + " zoning query failed (" + response.status + ")");
+    if (!response.ok) {
+      const detail = (await response.text()).slice(0, 800);
+      throw new Error(source + " zoning query failed (" + response.status + "): " + detail);
+    }
     const payload = await response.json() as GeoJsonCollection;
     if (payload.error) throw new Error(source + " zoning query error " + (payload.error.code ?? "unknown") + ": " + (payload.error.message ?? "query failed"));
     const page = payload.features ?? [];
