@@ -41,15 +41,25 @@ async function queryZoningLayer(layerUrl: string, bounds: Bounds, source: "kigal
   // The current hosted layer advertises MaxRecordCount=1000; keep pagination aligned.
   const pageSize = 1000;
   for (let offset = 0; offset < 9000; offset += pageSize) {
+    const [west, south, east, north] = bounds;
+    const geometry = JSON.stringify({
+      xmin: west,
+      ymin: south,
+      xmax: east,
+      ymax: north,
+      spatialReference: { wkid: 4326 }
+    });
     const params = new URLSearchParams({
       where: "1=1",
-      geometry: bounds.join(","),
+      geometry,
       geometryType: "esriGeometryEnvelope",
       inSR: "4326",
       outSR: "4326",
       spatialRel: "esriSpatialRelIntersects",
       outFields: "*",
       returnGeometry: "true",
+      returnZ: "false",
+      returnM: "false",
       resultOffset: String(offset),
       resultRecordCount: String(pageSize),
       f: "geojson"
@@ -58,7 +68,12 @@ async function queryZoningLayer(layerUrl: string, bounds: Bounds, source: "kigal
       headers: { Accept: "application/geo+json, application/json" },
       signal: AbortSignal.timeout(15_000)
     });
-    if (!response.ok) throw new Error(source + " zoning query failed (" + response.status + ")");
+    if (!response.ok) {
+      const responseBody = await response.text().catch(() => "");
+      throw new Error(
+        source + " zoning query failed (" + response.status + "): " + responseBody.slice(0, 700)
+      );
+    }
     const payload = await response.json() as GeoJsonCollection;
     if (payload.error) throw new Error(source + " zoning query error " + (payload.error.code ?? "unknown") + ": " + (payload.error.message ?? "query failed"));
     const page = payload.features ?? [];
