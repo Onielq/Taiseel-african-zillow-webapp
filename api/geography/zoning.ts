@@ -38,8 +38,8 @@ function intersect(a: Bounds, b: Bounds): Bounds | null {
 
 async function queryZoningLayer(layerUrl: string, bounds: Bounds, source: "kigali" | "bugesera" | "kigali-c2"): Promise<GeoJsonFeature[]> {
   const result: GeoJsonFeature[] = [];
-  // The current hosted layer advertises MaxRecordCount=1000; keep pagination aligned.
-  const pageSize = 1000;
+  // Keep per-request geometry payloads bounded for the large Kigali base-zone layer.
+  const pageSize = source === "kigali" ? 200 : 1000;
   for (let offset = 0; offset < 9000; offset += pageSize) {
     const [west, south, east, north] = bounds;
     const toWebMercator = (longitude: number, latitude: number): [number, number] => {
@@ -65,17 +65,19 @@ async function queryZoningLayer(layerUrl: string, bounds: Bounds, source: "kigal
       inSR: "102100",
       outSR: "4326",
       spatialRel: "esriSpatialRelIntersects",
-      outFields: "*",
+      outFields: "objectid,zone_code,new_zoning,conditiona,prohibited,buffer_zon,buff_detai,importance,wet_name",
       returnGeometry: "true",
       returnZ: "false",
       returnM: "false",
+      maxAllowableOffset: "0.00002",
+      geometryPrecision: "6",
       resultOffset: String(offset),
       resultRecordCount: String(pageSize),
       f: "geojson"
     });
     const response = await fetch(layerUrl + "/query?" + params.toString(), {
       headers: { Accept: "application/geo+json, application/json" },
-      signal: AbortSignal.timeout(15_000)
+      signal: AbortSignal.timeout(source === "kigali" ? 45_000 : 15_000)
     });
     if (!response.ok) {
       const responseBody = await response.text().catch(() => "");
@@ -162,7 +164,7 @@ async function queryKigaliLayerByIds(layerUrl: string, bounds: Bounds): Promise<
   });
   const idsResponse = await fetch(layerUrl + "/query?" + idsParams.toString(), {
     headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(15_000)
+    signal: AbortSignal.timeout(45_000)
   });
   if (!idsResponse.ok) {
     const body = await idsResponse.text().catch(() => "");
@@ -177,16 +179,17 @@ async function queryKigaliLayerByIds(layerUrl: string, bounds: Bounds): Promise<
   for (let start = 0; start < objectIds.length; start += 200) {
     const params = new URLSearchParams({
       objectIds: objectIds.slice(start, start + 200).join(","),
-      outFields: "*",
+      outFields: "objectid,zone_code,new_zoning,conditiona,prohibited,buffer_zon,buff_detai,importance,wet_name",
       outSR: "4326",
       returnGeometry: "true",
       returnZ: "false",
       returnM: "false",
+      geometryPrecision: "6",
       f: "geojson"
     });
     const response = await fetch(layerUrl + "/query?" + params.toString(), {
       headers: { Accept: "application/geo+json, application/json" },
-      signal: AbortSignal.timeout(15_000)
+      signal: AbortSignal.timeout(45_000)
     });
     if (!response.ok) {
       const body = await response.text().catch(() => "");
