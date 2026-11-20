@@ -8,7 +8,7 @@ type GeoJsonFeature = {
 type GeoJsonCollection = { type: "FeatureCollection"; features?: GeoJsonFeature[]; error?: { code?: number; message?: string } };
 
 const KIGALI_ZONING_LAYER =
-  "https://masterplan.kigalicity.gov.rw/server/rest/services/Hosted/Proposed_Zoning_Plan_22Apr2026/MapServer/0";
+  "https://masterplan.kigalicity.gov.rw/server/rest/services/Masterplan2020/Masterplan2020_22Apr2026/MapServer/117";
 const BUGESERA_ZONING_LAYER =
   "https://geodata.rw/server/rest/services/masterplan/Bugesera_DLUP/FeatureServer/0";
 // C2 is published as a separate Kigali commercial overlay, not as a base-zone class.
