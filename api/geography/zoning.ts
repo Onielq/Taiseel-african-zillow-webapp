@@ -38,6 +38,11 @@ function intersect(a: Bounds, b: Bounds): Bounds | null {
 
 async function queryZoningLayer(layerUrl: string, bounds: Bounds, source: "kigali" | "bugesera" | "kigali-c2"): Promise<GeoJsonFeature[]> {
   const result: GeoJsonFeature[] = [];
+  const optionalText = (value: unknown): string | null => {
+    if (typeof value !== "string") return null;
+    const normalized = value.trim();
+    return normalized && normalized.toLowerCase() !== "<null>" ? normalized : null;
+  };
   // Keep per-request geometry payloads bounded for the large Kigali base-zone layer.
   const pageSize = source === "kigali" ? 200 : 1000;
   for (let offset = 0; offset < 9000; offset += pageSize) {
@@ -49,23 +54,29 @@ async function queryZoningLayer(layerUrl: string, bounds: Bounds, source: "kigal
       const y = Math.log(Math.tan((90 + clampedLatitude) * Math.PI / 360)) * radius / Math.PI;
       return [x, y];
     };
-    const [xmin, ymin] = toWebMercator(west, south);
-    const [xmax, ymax] = toWebMercator(east, north);
+    // Only the current Kigali base zoning layer is queried in Web Mercator.
+    // The C2 sibling layer and Bugesera DLUP service retain their own WGS84 query path.
+    const [xmin, ymin, xmax, ymax] = source === "kigali"
+      ? [...toWebMercator(west, south), ...toWebMercator(east, north)]
+      : [west, south, east, north];
+    const inputWkid = source === "kigali" ? 102100 : 4326;
     const geometry = JSON.stringify({
       xmin,
       ymin,
       xmax,
       ymax,
-      spatialReference: { wkid: 102100 }
+      spatialReference: { wkid: inputWkid }
     });
     const params = new URLSearchParams({
       where: "1=1",
       geometry,
       geometryType: "esriGeometryEnvelope",
-      inSR: "102100",
+      inSR: String(inputWkid),
       outSR: "4326",
       spatialRel: "esriSpatialRelIntersects",
-      outFields: "objectid,zone_code,new_zoning,conditiona,prohibited,buffer_zon,buff_detai,importance,wet_name",
+      outFields: source === "kigali"
+        ? "objectid,zone_code,new_zoning,conditiona,prohibited,buffer_zon,buff_detai,importance,wet_name"
+        : "*",
       returnGeometry: "true",
       returnZ: "false",
       returnM: "false",
@@ -122,10 +133,10 @@ async function queryZoningLayer(layerUrl: string, bounds: Bounds, source: "kigal
         ...properties,
         zoning,
         zoning_code: zoningCode,
-        zoning_condition: typeof properties.conditiona === "string" ? properties.conditiona.trim() : null,
-        zoning_prohibited: typeof properties.prohibited === "string" ? properties.prohibited.trim() : null,
-        zoning_buffer: typeof properties.buffer_zon === "string" ? properties.buffer_zon.trim() : null,
-        zoning_buffer_detail: typeof properties.buff_detai === "string" ? properties.buff_detai.trim() : null,
+        zoning_condition: optionalText(properties.conditiona),
+        zoning_prohibited: optionalText(properties.prohibited),
+        zoning_buffer: optionalText(properties.buffer_zon),
+        zoning_buffer_detail: optionalText(properties.buff_detai),
         zoning_is_overlay: source === "kigali-c2",
         zoning_source: source === "kigali"
           ? "Kigali City Master Plan · Proposed Zoning Plan (22 April 2026 map service)"
