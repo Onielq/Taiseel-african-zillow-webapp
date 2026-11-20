@@ -135,6 +135,72 @@ async function queryZoningLayer(layerUrl: string, bounds: Bounds, source: "kigal
   });
 }
 
+function featureIntersectsBounds(feature: GeoJsonFeature, bounds: Bounds): boolean {
+  const coordinates: [number, number][] = [];
+  const visit = (value: unknown): void => {
+    if (!Array.isArray(value)) return;
+    if (typeof value[0] === "number" && typeof value[1] === "number") {
+      coordinates.push([value[0], value[1]]);
+      return;
+    }
+    value.forEach(visit);
+  };
+  visit(feature.geometry?.coordinates);
+  if (!coordinates.length) return false;
+  const xs = coordinates.map(([x]) => x);
+  const ys = coordinates.map(([, y]) => y);
+  const west = Math.min(...xs), east = Math.max(...xs);
+  const south = Math.min(...ys), north = Math.max(...ys);
+  return west <= bounds[2] && east >= bounds[0] && south <= bounds[3] && north >= bounds[1];
+}
+
+async function queryKigaliLayerByIds(layerUrl: string, bounds: Bounds): Promise<GeoJsonFeature[]> {
+  const idsParams = new URLSearchParams({
+    where: "1=1",
+    returnIdsOnly: "true",
+    f: "json"
+  });
+  const idsResponse = await fetch(layerUrl + "/query?" + idsParams.toString(), {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(15_000)
+  });
+  if (!idsResponse.ok) {
+    const body = await idsResponse.text().catch(() => "");
+    throw new Error("Kigali zoning object-ID query failed (" + idsResponse.status + "): " + body.slice(0, 500));
+  }
+  const idsPayload = await idsResponse.json() as { objectIds?: number[]; error?: { code?: number; message?: string } };
+  if (idsPayload.error) {
+    throw new Error("Kigali zoning object-ID query error " + (idsPayload.error.code ?? "unknown") + ": " + (idsPayload.error.message ?? "query failed"));
+  }
+  const objectIds = idsPayload.objectIds ?? [];
+  const features: GeoJsonFeature[] = [];
+  for (let start = 0; start < objectIds.length; start += 200) {
+    const params = new URLSearchParams({
+      objectIds: objectIds.slice(start, start + 200).join(","),
+      outFields: "*",
+      outSR: "4326",
+      returnGeometry: "true",
+      returnZ: "false",
+      returnM: "false",
+      f: "geojson"
+    });
+    const response = await fetch(layerUrl + "/query?" + params.toString(), {
+      headers: { Accept: "application/geo+json, application/json" },
+      signal: AbortSignal.timeout(15_000)
+    });
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error("Kigali zoning geometry batch failed (" + response.status + "): " + body.slice(0, 500));
+    }
+    const payload = await response.json() as GeoJsonCollection;
+    if (payload.error) {
+      throw new Error("Kigali zoning geometry batch error " + (payload.error.code ?? "unknown") + ": " + (payload.error.message ?? "query failed"));
+    }
+    features.push(...(payload.features ?? []).filter((feature) => featureIntersectsBounds(feature, bounds)));
+  }
+  return features;
+}
+
 export async function GET(request: Request): Promise<Response> {
   const requestUrl = new URL(request.url);
   const bounds = parseBounds(requestUrl.searchParams.get("bbox"));
@@ -159,7 +225,12 @@ export async function GET(request: Request): Promise<Response> {
 
   const responses = await Promise.all(jobs.map(async (source) => {
     try {
-      return { source: source.id, features: await queryZoningLayer(source.url, source.target, source.id), failed: false };
+      const features = await queryZoningLayer(source.url, source.target, source.id).catch(async (spatialError) => {
+        if (source.id !== "kigali") throw spatialError;
+        console.warn("Kigali spatial zoning query failed; retrying with object-ID batches.", spatialError);
+        return queryKigaliLayerByIds(source.url, source.target);
+      });
+      return { source: source.id, features, failed: false };
     } catch (error) {
       console.error("Official zoning layer failed for " + source.id + ".", error);
       return { source: source.id, features: [] as GeoJsonFeature[], failed: true };
