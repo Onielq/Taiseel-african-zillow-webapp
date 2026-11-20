@@ -42,18 +42,27 @@ async function queryZoningLayer(layerUrl: string, bounds: Bounds, source: "kigal
   const pageSize = 1000;
   for (let offset = 0; offset < 9000; offset += pageSize) {
     const [west, south, east, north] = bounds;
+    const toWebMercator = (longitude: number, latitude: number): [number, number] => {
+      const radius = 20_037_508.342789244;
+      const clampedLatitude = Math.max(-85.05112878, Math.min(85.05112878, latitude));
+      const x = longitude * radius / 180;
+      const y = Math.log(Math.tan((90 + clampedLatitude) * Math.PI / 360)) * radius / Math.PI;
+      return [x, y];
+    };
+    const [xmin, ymin] = toWebMercator(west, south);
+    const [xmax, ymax] = toWebMercator(east, north);
     const geometry = JSON.stringify({
-      xmin: west,
-      ymin: south,
-      xmax: east,
-      ymax: north,
-      spatialReference: { wkid: 4326 }
+      xmin,
+      ymin,
+      xmax,
+      ymax,
+      spatialReference: { wkid: 102100 }
     });
     const params = new URLSearchParams({
       where: "1=1",
       geometry,
       geometryType: "esriGeometryEnvelope",
-      inSR: "4326",
+      inSR: "102100",
       outSR: "4326",
       spatialRel: "esriSpatialRelIntersects",
       outFields: "*",
