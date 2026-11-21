@@ -1458,6 +1458,7 @@ export function MapView({
   const selectedAreaRef = useRef<SelectedArea | null>(selectedArea);
   const selectionSyncRef = useRef<((area: SelectedArea | null) => void) | null>(null);
   const parcelUpiSearchRef = useRef<ParcelUpiSearchRequest | null>(null);
+  const searchedParcelFeatureRef = useRef<MapFeatureCollection["features"][number] | null>(null);
   const selectSearchedParcelRef = useRef<() => void>(() => {});
   const zoningOverlayStatusRef = useRef<"idle" | "loading" | "ready" | "error">("idle");
   const refreshMetricBubblesRef = useRef<(() => void) | null>(null);
@@ -1542,7 +1543,7 @@ export function MapView({
   useEffect(() => {
     selectedAreaRef.current = selectedArea;
     selectionSyncRef.current?.(selectedArea);
-    if (selectedArea?.level === "parcel") refreshZoningRef.current?.();
+    if (selectedArea?.level === "parcel" && zoningOverlayStatusRef.current === "idle") refreshZoningRef.current?.();
   }, [selectedArea]);
 
   useEffect(() => {
@@ -1552,6 +1553,8 @@ export function MapView({
     const controller = new AbortController();
     let active = true;
     parcelUpiSearchRef.current = request;
+    searchedParcelFeatureRef.current = null;
+    zoningOverlayStatusRef.current = "idle";
     onParcelUpiSearchStatus?.({
       state: "loading",
       upi,
@@ -1601,6 +1604,7 @@ export function MapView({
           return;
         }
 
+        searchedParcelFeatureRef.current = feature as MapFeatureCollection["features"][number];
         const area = featureToArea(feature, "parcel");
         const bounds = featureBounds(feature);
         const map = mapRef.current;
@@ -1729,9 +1733,17 @@ export function MapView({
     selectSearchedParcelRef.current = () => {
       const request = parcelUpiSearchRef.current;
       if (!request || zoningOverlayStatusRef.current === "loading" || zoningOverlayStatusRef.current === "idle") return;
-      const feature = parcelAllFeaturesRef.current.features.find((candidate) =>
+      const viewportFeature = parcelAllFeaturesRef.current.features.find((candidate) =>
         String(candidate.properties?.upi ?? "").trim() === request.upi
       ) as MapGeoJSONFeature | undefined;
+      const directFeature = searchedParcelFeatureRef.current;
+      const feature = viewportFeature ?? (directFeature
+        ? enrichParcelCollection(
+            { type: "FeatureCollection", features: [directFeature] },
+            zoningFeaturesRef.current,
+            areaDataRef.current
+          ).features[0] as MapGeoJSONFeature | undefined
+        : undefined);
       if (!feature) return;
       const area = featureToArea(feature, "parcel");
       if (!area) return;
@@ -1744,6 +1756,7 @@ export function MapView({
         parcelMarketStatusSource: suppliedMarketStatus ? "source" : null
       });
       parcelUpiSearchRef.current = null;
+      searchedParcelFeatureRef.current = null;
       onParcelUpiSearchStatus?.({
         state: "found",
         upi: request.upi,
