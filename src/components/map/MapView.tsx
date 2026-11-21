@@ -1731,12 +1731,15 @@ export function MapView({
     activeAreaLevelRef.current = activeAreaLevel(map.getZoom());
 
     selectSearchedParcelRef.current = () => {
+      if (zoningOverlayStatusRef.current === "loading" || zoningOverlayStatusRef.current === "idle") return;
       const request = parcelUpiSearchRef.current;
-      if (!request || zoningOverlayStatusRef.current === "loading" || zoningOverlayStatusRef.current === "idle") return;
+      const selectedUpi = request?.upi ??
+        (selectedAreaRef.current?.level === "parcel" ? selectedAreaRef.current.upi : null);
+      if (!selectedUpi) return;
       const viewportFeature = parcelAllFeaturesRef.current.features.find((candidate) =>
-        String(candidate.properties?.upi ?? "").trim() === request.upi
+        String(candidate.properties?.upi ?? "").trim() === selectedUpi
       ) as MapGeoJSONFeature | undefined;
-      const directFeature = searchedParcelFeatureRef.current;
+      const directFeature = request ? searchedParcelFeatureRef.current : null;
       const feature = viewportFeature ?? (directFeature
         ? enrichParcelCollection(
             { type: "FeatureCollection", features: [directFeature] },
@@ -1755,15 +1758,17 @@ export function MapView({
         parcelMarketStatus: suppliedMarketStatus,
         parcelMarketStatusSource: suppliedMarketStatus ? "source" : null
       });
-      parcelUpiSearchRef.current = null;
-      searchedParcelFeatureRef.current = null;
-      onParcelUpiSearchStatus?.({
-        state: "found",
-        upi: request.upi,
-        message: zoningOverlayStatusRef.current === "error"
-          ? "Parcel found. Planning data could not be refreshed, so zoning still needs an official check."
-          : "Parcel mapped. Its published planning information is included in the profile."
-      });
+      if (request) {
+        parcelUpiSearchRef.current = null;
+        searchedParcelFeatureRef.current = null;
+        onParcelUpiSearchStatus?.({
+          state: "found",
+          upi: request.upi,
+          message: zoningOverlayStatusRef.current === "error"
+            ? "Parcel found. Planning data could not be refreshed, so zoning still needs an official check."
+            : "Parcel mapped. Its published planning information is included in the profile."
+        });
+      }
     };
 
     const resolveActiveAreaLevel = () => {
