@@ -171,13 +171,17 @@ export default function MapApp() {
   }, []);
 
   const onAreaSelected = useCallback((area: SelectedArea | null) => {
-    setSelectedArea(area);
+    const sameOpenParcel = propertyProfileOpen &&
+      area?.level === "parcel" &&
+      selectedArea?.level === "parcel" &&
+      area.upi === selectedArea.upi;
     const matchesUpiSearch = area?.level === "parcel" &&
       Boolean(parcelUpiSearch?.upi) &&
       area.upi === parcelUpiSearch?.upi;
-    setPropertyProfileOpen(matchesUpiSearch);
+    setSelectedArea(area);
+    setPropertyProfileOpen(matchesUpiSearch || sameOpenParcel);
     notifyParent(selectedAreaEvent(area));
-  }, [parcelUpiSearch]);
+  }, [parcelUpiSearch, propertyProfileOpen, selectedArea]);
 
   const onParcelUpiSearchStatus = useCallback((status: ParcelUpiSearchStatus) => {
     setUpiSearchStatus(status);
