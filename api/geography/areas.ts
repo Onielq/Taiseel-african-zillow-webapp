@@ -1383,11 +1383,11 @@ async function getParcelByUpi(
         const district = textValue(attributeValue(attributes, ["district"]));
         const districtKey = (district ?? "")
           .normalize("NFD")
-          .replace(/[\\u0300-\\u036f]/g, "")
+          .replace(/[\u0300-\u036f]/g, "")
           .trim()
-          .replace(/\\s+/g, " ")
+          .replace(/\s+/g, " ")
           .toLocaleLowerCase("en")
-          .replace(/\\s+district$/, "");
+          .replace(/\s+district$/, "");
         if (districtKey !== "bugesera") return null;
 
         const locationIds = bugeseraLocationIdsFromUpi(returnedUpi);
@@ -1543,7 +1543,7 @@ export async function GET(request: Request): Promise<Response> {
     const upi = rawUpi.trim();
     // Rwanda UPI structure: five slash-separated numeric components.
     // This strict format also prevents SQL syntax from entering the provider query.
-    if (!/^\\d+(?:\\/\\d+){4}$/.test(upi)) {
+    if (!/^\d+(?:\/\d+){4}$/.test(upi)) {
       return Response.json(
         { error: "Enter a valid Rwanda UPI with five numeric components, separated by slashes.", dataStatus: "invalid_upi" },
         { status: 400 }
