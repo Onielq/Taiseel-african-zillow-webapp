@@ -27,6 +27,17 @@ The embedded map uses the MapLibre GL implementation from `Onielq/african-zillow
 
 The map does not establish title or ownership. An administrative polygon is not a parcel. A cadastral polygon is not proof of current registered ownership, encumbrances or survey completeness. Estimated values retain their source and method caveats.
 
+## Direct UPI parcel lookup
+
+The map now provides an exact UPI search control. It sends the five-part numeric Rwanda UPI to the parcel API, which checks both connected cadastral sources:
+
+- City of Kigali Master Plan · Kigali Parcels layer
+- National Land Authority LAIS · Bugesera_Parcels layer
+
+A matching record opens the parcel on the map and selects it for the connected three-layer property profile. The normal viewport map load then enriches the selected parcel with applicable published zoning records. If a source is unavailable, the search reports an incomplete lookup. If the connected sources return conflicting matches, the API reports an ambiguity instead of choosing one.
+
+This lookup confirms only that a matching record was returned by a connected cadastral source. It does not establish current registered ownership, encumbrances, seller authority, legal title, parcel survey completeness or whether a transaction is safe. Those checks still require current official searches and appropriate professional review.
+
 ## Connected property profile
 
 Selecting an individual cadastral parcel on the MapLibre map opens the parcel evidence card. The card's **View connected property profile** action brings the three Taiseel intelligence layers together for that parcel:

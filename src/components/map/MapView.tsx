@@ -584,6 +584,13 @@ function withStableAreaFeatureIds(
   };
 }
 
+export type ParcelUpiSearchRequest = { upi: string; requestId: number };
+export type ParcelUpiSearchStatus = {
+  state: "loading" | "found" | "not-found" | "error";
+  upi: string;
+  message: string;
+};
+
 type MapViewProps = {
   basemapMode: BasemapMode;
   showLandPriceHeatmap: boolean;
@@ -602,6 +609,8 @@ type MapViewProps = {
   onStatusChange: (status: BasemapStatus) => void;
   onBoundaryStatusChange: (status: BoundaryStatus) => void;
   onAreaSelected: (area: SelectedArea | null) => void;
+  parcelUpiSearch?: ParcelUpiSearchRequest | null;
+  onParcelUpiSearchStatus?: (status: ParcelUpiSearchStatus) => void;
 };
 
 const FALLBACK_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
@@ -1419,7 +1428,9 @@ export function MapView({
   projects = [],
   showProjects = false,
   selectedProjectId = null,
-  onProjectSelected
+  onProjectSelected,
+  parcelUpiSearch = null,
+  onParcelUpiSearchStatus
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMapInstance | null>(null);
@@ -1446,6 +1457,10 @@ export function MapView({
   const activeAreaLevelRef = useRef<AreaLevel>("district");
   const selectedAreaRef = useRef<SelectedArea | null>(selectedArea);
   const selectionSyncRef = useRef<((area: SelectedArea | null) => void) | null>(null);
+  const parcelUpiSearchRef = useRef<ParcelUpiSearchRequest | null>(null);
+  const searchedParcelFeatureRef = useRef<MapFeatureCollection["features"][number] | null>(null);
+  const selectSearchedParcelRef = useRef<() => void>(() => {});
+  const zoningOverlayStatusRef = useRef<"idle" | "loading" | "ready" | "error">("idle");
   const refreshMetricBubblesRef = useRef<(() => void) | null>(null);
   const showLayersRef = useRef(showLayers);
   const showScopeRef = useRef(showScope);
@@ -1528,7 +1543,116 @@ export function MapView({
   useEffect(() => {
     selectedAreaRef.current = selectedArea;
     selectionSyncRef.current?.(selectedArea);
+    if (selectedArea?.level === "parcel" && zoningOverlayStatusRef.current === "idle") refreshZoningRef.current?.();
   }, [selectedArea]);
+
+  useEffect(() => {
+    if (!parcelUpiSearch) return;
+    const request = parcelUpiSearch;
+    const upi = request.upi.trim();
+    const controller = new AbortController();
+    let active = true;
+    parcelUpiSearchRef.current = request;
+    searchedParcelFeatureRef.current = null;
+    zoningOverlayStatusRef.current = "idle";
+    onParcelUpiSearchStatus?.({
+      state: "loading",
+      upi,
+      message: "Searching connected cadastral records…"
+    });
+
+    const lookupParcel = async () => {
+      try {
+        const response = await fetch(
+          "/api/geography/areas?level=parcel&upi=" + encodeURIComponent(upi),
+          { signal: controller.signal, headers: { Accept: "application/json" } }
+        );
+        const payload = await response.json() as {
+          type?: string;
+          features?: MapFeatureCollection["features"];
+          error?: string;
+          dataStatus?: string;
+        };
+        if (!active) return;
+        if (response.status === 404 || payload.dataStatus === "not_found") {
+          parcelUpiSearchRef.current = null;
+          onParcelUpiSearchStatus?.({
+            state: "not-found",
+            upi,
+            message: "No matching parcel was found in the connected Kigali or Bugesera cadastral sources."
+          });
+          return;
+        }
+        if (!response.ok) {
+          parcelUpiSearchRef.current = null;
+          onParcelUpiSearchStatus?.({
+            state: "error",
+            upi,
+            message: payload.error || "The official parcel sources could not complete this lookup."
+          });
+          return;
+        }
+
+        const feature = payload.features?.[0] as MapGeoJSONFeature | undefined;
+        if (!feature) {
+          parcelUpiSearchRef.current = null;
+          onParcelUpiSearchStatus?.({
+            state: "not-found",
+            upi,
+            message: "No mapped parcel geometry was returned for this UPI."
+          });
+          return;
+        }
+
+        searchedParcelFeatureRef.current = feature as MapFeatureCollection["features"][number];
+        const area = featureToArea(feature, "parcel");
+        const bounds = featureBounds(feature);
+        const map = mapRef.current;
+        if (!area || !bounds || !map) {
+          parcelUpiSearchRef.current = null;
+          onParcelUpiSearchStatus?.({
+            state: "error",
+            upi,
+            message: "A parcel record was returned, but its map geometry could not be opened."
+          });
+          return;
+        }
+
+        onAreaSelected({
+          ...area,
+          zoningStatus: "loading"
+        });
+        onParcelUpiSearchStatus?.({
+          state: "found",
+          upi,
+          message: "Parcel record found. Opening its location and loading the planning context…"
+        });
+        map.fitBounds(
+          [[bounds[0], bounds[1]], [bounds[2], bounds[3]]],
+          {
+            padding: window.matchMedia("(max-width: 720px)").matches
+              ? { top: 92, bottom: 150, left: 22, right: 22 }
+              : { top: 118, bottom: 90, left: 60, right: 420 },
+            maxZoom: 19.35,
+            duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 650
+          }
+        );
+      } catch (error) {
+        if (!active || controller.signal.aborted) return;
+        parcelUpiSearchRef.current = null;
+        onParcelUpiSearchStatus?.({
+          state: "error",
+          upi,
+          message: error instanceof Error ? error.message : "The UPI search failed."
+        });
+      }
+    };
+    void lookupParcel();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [parcelUpiSearch, onAreaSelected, onParcelUpiSearchStatus]);
 
   useEffect(() => {
     projectsRef.current = projects;
@@ -1605,6 +1729,47 @@ export function MapView({
     mapRef.current = map;
     activeBasemapModeRef.current = "map";
     activeAreaLevelRef.current = activeAreaLevel(map.getZoom());
+
+    selectSearchedParcelRef.current = () => {
+      if (zoningOverlayStatusRef.current === "loading" || zoningOverlayStatusRef.current === "idle") return;
+      const request = parcelUpiSearchRef.current;
+      const selectedUpi = request?.upi ??
+        (selectedAreaRef.current?.level === "parcel" ? selectedAreaRef.current.upi : null);
+      if (!selectedUpi) return;
+      const viewportFeature = parcelAllFeaturesRef.current.features.find((candidate) =>
+        String(candidate.properties?.upi ?? "").trim() === selectedUpi
+      ) as MapGeoJSONFeature | undefined;
+      const directFeature = request ? searchedParcelFeatureRef.current : null;
+      const feature = viewportFeature ?? (directFeature
+        ? enrichParcelCollection(
+            { type: "FeatureCollection", features: [directFeature] },
+            zoningFeaturesRef.current,
+            areaDataRef.current
+          ).features[0] as MapGeoJSONFeature | undefined
+        : undefined);
+      if (!feature) return;
+      const area = featureToArea(feature, "parcel");
+      if (!area) return;
+      const properties = feature.properties as AreaProperties | null;
+      const suppliedMarketStatus = propertyMarketStatus(properties?.market_status);
+      onAreaSelected({
+        ...area,
+        zoningStatus: zoningOverlayStatusRef.current === "error" ? "error" : area.zoningStatus,
+        parcelMarketStatus: suppliedMarketStatus,
+        parcelMarketStatusSource: suppliedMarketStatus ? "source" : null
+      });
+      if (request) {
+        parcelUpiSearchRef.current = null;
+        searchedParcelFeatureRef.current = null;
+        onParcelUpiSearchStatus?.({
+          state: "found",
+          upi: request.upi,
+          message: zoningOverlayStatusRef.current === "error"
+            ? "Parcel found. Planning data could not be refreshed, so zoning still needs an official check."
+            : "Parcel mapped. Its published planning information is included in the profile."
+        });
+      }
+    };
 
     const resolveActiveAreaLevel = () => {
       const level = activeAreaLevelForMap(map, areaDataRef.current, activeAreaLevelRef.current);
@@ -3240,6 +3405,7 @@ export function MapView({
           parcelRawFeaturesRef.current = withStableFeatureIds;
           parcelAllFeaturesRef.current = enrichParcelCollection(withStableFeatureIds, zoningFeaturesRef.current, areaDataRef.current);
           applyParcelSearchFilters();
+          selectSearchedParcelRef.current();
         } else {
           areaDataRef.current[level] = withStableFeatureIds;
           source.setData(withStableFeatureIds);
@@ -3910,8 +4076,11 @@ export function MapView({
       zoningOverlayController?.abort();
       zoningOverlayController = null;
       const sequence = ++zoningOverlaySequence;
-      const needsZoningData = showZoningRef.current || parcelFiltersRef.current.zoningCodes.length > 0;
+      const needsZoningData = showZoningRef.current ||
+        parcelFiltersRef.current.zoningCodes.length > 0 ||
+        selectedAreaRef.current?.level === "parcel";
       if (!needsZoningData) {
+        zoningOverlayStatusRef.current = "idle";
         source.setData(emptyFeatureCollection());
         zoningFeaturesRef.current = [];
         parcelAllFeaturesRef.current = enrichParcelCollection(parcelRawFeaturesRef.current, [], areaDataRef.current);
@@ -3921,6 +4090,7 @@ export function MapView({
 
       const controller = new AbortController();
       zoningOverlayController = controller;
+      zoningOverlayStatusRef.current = "loading";
       const bounds = map.getBounds();
       const bbox = [
         bounds.getWest(),
@@ -3940,6 +4110,8 @@ export function MapView({
         zoningFeaturesRef.current = (data.features ?? []) as MapFeatureCollection["features"];
         parcelAllFeaturesRef.current = enrichParcelCollection(parcelRawFeaturesRef.current, zoningFeaturesRef.current, areaDataRef.current);
         applyParcelSearchFilters();
+        zoningOverlayStatusRef.current = "ready";
+        selectSearchedParcelRef.current();
       } catch (error) {
         if (controller.signal.aborted) return;
         console.error("Official zoning overlay failed.", error);
@@ -3947,12 +4119,16 @@ export function MapView({
         zoningFeaturesRef.current = [];
         parcelAllFeaturesRef.current = enrichParcelCollection(parcelRawFeaturesRef.current, [], areaDataRef.current);
         applyParcelSearchFilters();
+        zoningOverlayStatusRef.current = "error";
+        selectSearchedParcelRef.current();
       }
     };
 
     const scheduleZoningRefresh = () => {
       if (zoningOverlayTimer) clearTimeout(zoningOverlayTimer);
-      const needsZoningData = showZoningRef.current || parcelFiltersRef.current.zoningCodes.length > 0;
+      const needsZoningData = showZoningRef.current ||
+        parcelFiltersRef.current.zoningCodes.length > 0 ||
+        selectedAreaRef.current?.level === "parcel";
       if (!needsZoningData) {
         zoningOverlayController?.abort();
         const source = map.getSource("zoning-overlay") as GeoJSONSource | undefined;
@@ -4368,6 +4544,7 @@ export function MapView({
       map.getCanvas().removeEventListener("mouseleave", handleMapPointerLeave);
       map.remove();
       mapRef.current = null;
+      selectSearchedParcelRef.current = () => {};
       if (e2eEnabled && e2eMapWindow.__RLI_E2E_MAP__ === map) {
         delete e2eMapWindow.__RLI_E2E_MAP__;
       }

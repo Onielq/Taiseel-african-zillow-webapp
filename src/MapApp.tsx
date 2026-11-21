@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   MapView,
   type AreaLevel,
@@ -8,6 +8,8 @@ import {
   type MapOverlayCategory,
   type ParcelSearchFilters,
   type ParcelInventoryStats,
+  type ParcelUpiSearchRequest,
+  type ParcelUpiSearchStatus,
   EMPTY_PARCEL_SEARCH_FILTERS,
   parcelPriceTypeLabel,
   type SelectedArea
@@ -140,6 +142,10 @@ export default function MapApp() {
   const [parcelFilters, setParcelFilters] = useState<ParcelSearchFilters>(EMPTY_PARCEL_SEARCH_FILTERS);
   const [selectedArea, setSelectedArea] = useState<SelectedArea | null>(null);
   const [propertyProfileOpen, setPropertyProfileOpen] = useState(false);
+  const [upiQuery, setUpiQuery] = useState("");
+  const [parcelUpiSearch, setParcelUpiSearch] = useState<ParcelUpiSearchRequest | null>(null);
+  const [upiSearchStatus, setUpiSearchStatus] = useState<ParcelUpiSearchStatus | null>(null);
+  const upiSearchSequenceRef = useRef(0);
   const [basemapStatus, setBasemapStatus] = useState<BasemapStatus>("loading");
   const [boundaryStatus, setBoundaryStatus] = useState<BoundaryStatus>("loading");
   const [drawing, setDrawing] = useState(false);
@@ -165,10 +171,39 @@ export default function MapApp() {
   }, []);
 
   const onAreaSelected = useCallback((area: SelectedArea | null) => {
+    const sameOpenParcel = propertyProfileOpen &&
+      area?.level === "parcel" &&
+      selectedArea?.level === "parcel" &&
+      area.upi === selectedArea.upi;
+    const matchesUpiSearch = area?.level === "parcel" &&
+      Boolean(parcelUpiSearch?.upi) &&
+      area.upi === parcelUpiSearch?.upi;
     setSelectedArea(area);
-    setPropertyProfileOpen(false);
+    setPropertyProfileOpen(matchesUpiSearch || sameOpenParcel);
     notifyParent(selectedAreaEvent(area));
+  }, [parcelUpiSearch, propertyProfileOpen, selectedArea]);
+
+  const onParcelUpiSearchStatus = useCallback((status: ParcelUpiSearchStatus) => {
+    setUpiSearchStatus(status);
   }, []);
+
+  const submitParcelUpiSearch = useCallback((event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const upi = upiQuery.trim().replace(/\s+/g, "");
+    if (!/^\d+(?:\/\d+){4}$/.test(upi)) {
+      setUpiSearchStatus({
+        state: "error",
+        upi,
+        message: "Enter a Rwanda UPI with five numeric parts separated by slashes."
+      });
+      return;
+    }
+    upiSearchSequenceRef.current += 1;
+    setParcelFilters(EMPTY_PARCEL_SEARCH_FILTERS);
+    setPropertyProfileOpen(false);
+    setUpiSearchStatus({ state: "loading", upi, message: "Searching connected cadastral records…" });
+    setParcelUpiSearch({ upi, requestId: upiSearchSequenceRef.current });
+  }, [upiQuery]);
 
   const onParcelInventoryStats = useCallback((stats: ParcelInventoryStats) => {
     notifyParent({ source: "taiseel-map-engine", type: "parcel-inventory-stats", stats });
@@ -292,11 +327,36 @@ export default function MapApp() {
         onBoundaryStatusChange={onBoundaryStatus}
         onAreaSelected={onAreaSelected}
         selectedArea={selectedArea}
+        parcelUpiSearch={parcelUpiSearch}
+        onParcelUpiSearchStatus={onParcelUpiSearchStatus}
         projects={NO_PROJECTS}
         showProjects={false}
         selectedProjectId={null}
         onProjectSelected={onProjectSelected}
       />
+      <form className="parcel-upi-search" onSubmit={submitParcelUpiSearch}>
+        <label htmlFor="parcel-upi-search-input">Find a parcel by UPI</label>
+        <div className="parcel-upi-search-row">
+          <input
+            id="parcel-upi-search-input"
+            value={upiQuery}
+            onChange={(event) => setUpiQuery(event.target.value)}
+            placeholder="e.g. 1/03/01/04/2481"
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <button type="submit" disabled={basemapStatus !== "ready"}>
+            Search
+          </button>
+        </div>
+        <p
+          className={"parcel-upi-search-status" + (upiSearchStatus?.state === "error" || upiSearchStatus?.state === "not-found" ? " error" : "")}
+          role="status"
+          aria-live="polite"
+        >
+          {upiSearchStatus?.message || "Enter a parcel UPI to locate its cadastral record on the map."}
+        </p>
+      </form>
       <div className="map-engine-status" aria-live="polite">
         <span className={"map-engine-status-dot " + (basemapStatus === "ready" ? "ready" : basemapStatus === "error" ? "error" : "loading")} />
         {basemapStatus === "loading" ? "Loading basemap…" : basemapStatus === "error" ? "Basemap unavailable" : ""}

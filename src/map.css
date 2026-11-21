@@ -60,8 +60,8 @@ html, body, #map-root {
 .map-engine-status {
   position: absolute;
   z-index: 800;
-  top: 10px;
-  left: 10px;
+  top: 76px;
+  left: 12px;
   min-height: 25px;
   display: inline-flex;
   align-items: center;
@@ -401,5 +401,80 @@ html, body, #map-root {
     bottom: 8px;
     width: calc(100% - 16px);
     padding: 13px;
+  }
+}
+
+
+/* Exact UPI search is the direct entry point to a cadastral parcel profile. */
+.parcel-upi-search {
+  position: absolute;
+  z-index: 1050;
+  top: 12px;
+  left: 12px;
+  width: min(340px, calc(100% - 24px));
+  padding: 11px 12px 9px;
+  border: 1px solid rgba(0,0,0,.14);
+  border-radius: 5px;
+  background: rgba(255,255,255,.97);
+  box-shadow: 0 2px 12px rgba(0,0,0,.15);
+}
+.parcel-upi-search > label {
+  display: block;
+  margin-bottom: 7px;
+  color: #26382e;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.parcel-upi-search-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.parcel-upi-search-row input {
+  min-width: 0;
+  flex: 1;
+  height: 36px;
+  padding: 0 9px;
+  border: 1px solid #d2dbd5;
+  border-radius: 3px;
+  background: #fff;
+  color: #202b25;
+  font: 11px Inter, Arial, sans-serif;
+}
+.parcel-upi-search-row input:focus {
+  border-color: #006aff;
+  outline: 2px solid rgba(0,106,255,.14);
+}
+.parcel-upi-search-row button {
+  min-width: 70px;
+  padding: 0 12px;
+  border: 1px solid #006aff;
+  border-radius: 3px;
+  background: #006aff;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.parcel-upi-search-row button:hover:not(:disabled) { background: #0051cc; }
+.parcel-upi-search-row button:disabled { opacity: .55; cursor: not-allowed; }
+.parcel-upi-search-status {
+  margin: 7px 0 0;
+  color: #66766c;
+  font-size: 9px;
+  line-height: 1.4;
+}
+.parcel-upi-search-status.error { color: #a53b34; }
+@media (max-width: 600px) {
+  .parcel-upi-search {
+    top: 8px;
+    left: 8px;
+    width: min(340px, calc(100% - 16px));
+  }
+  .map-engine-status {
+    top: 81px;
+    left: 8px;
   }
 }
