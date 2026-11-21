@@ -1341,6 +1341,180 @@ async function getParcels(
   );
 }
 
+
+async function getParcelByUpi(
+  upi: string,
+  sourceFilter: "kigali" | "bugesera" | undefined
+): Promise<Response> {
+  const providers: ParcelProvider[] = [
+    { id: "kigali", layerUrl: KIGALI_PARCEL_FEATURE_LAYER, extent: KIGALI_PARCEL_EXTENT },
+    { id: "bugesera", layerUrl: BUGESERA_PARCEL_FEATURE_LAYER, extent: BUGESERA_PARCEL_EXTENT }
+  ].filter((provider) => !sourceFilter || provider.id === sourceFilter);
+
+  const results = await Promise.all(providers.map(async (provider) => {
+    try {
+      const upstreamFeatures = await queryArcGisLayer(
+        provider.layerUrl,
+        provider.extent,
+        5,
+        "upi = '" + upi + "'",
+        "upi,province,district,sector,cell,village,parcel_number,size,area_in_wetland,last_updated_on,objectid,fid",
+        0,
+        15_000,
+        false
+      );
+      return { provider, upstreamFeatures, failed: false };
+    } catch (error) {
+      console.error("Direct UPI parcel lookup failed for " + provider.id + ".", error);
+      return { provider, upstreamFeatures: [] as UpstreamFeature[], failed: true };
+    }
+  }));
+
+  const features = results.flatMap(({ provider, upstreamFeatures }) =>
+    upstreamFeatures.map((feature, index) => {
+      const attributes = feature.attributes ?? feature.properties ?? {};
+      const returnedUpi = textValue(attributeValue(attributes, ["upi"]));
+      if (!returnedUpi || returnedUpi !== upi) return null;
+
+      const geometry = arcGisPolygonToGeoJson(feature.geometry);
+      if (!geometry) return null;
+
+      if (provider.id === "bugesera") {
+        const district = textValue(attributeValue(attributes, ["district"]));
+        const districtKey = (district ?? "")
+          .normalize("NFD")
+          .replace(/[\\u0300-\\u036f]/g, "")
+          .trim()
+          .replace(/\\s+/g, " ")
+          .toLocaleLowerCase("en")
+          .replace(/\\s+district$/, "");
+        if (districtKey !== "bugesera") return null;
+
+        const locationIds = bugeseraLocationIdsFromUpi(returnedUpi);
+        const rawProvince = textValue(attributeValue(attributes, ["province"]));
+        const parcelNumber =
+          textValue(attributeValue(attributes, ["parcel_number", "parcelnumber"])) ??
+          returnedUpi.split("/").at(-1) ??
+          null;
+        return {
+          type: "Feature" as const,
+          id: "parcel-bugesera-" + returnedUpi + "-" + index,
+          geometry,
+          properties: {
+            province: rawProvince === "Eastern" ? "Eastern Province" : rawProvince ?? "Eastern Province",
+            province_id: locationIds.provinceId,
+            district,
+            district_id: locationIds.districtId,
+            sector: textValue(attributeValue(attributes, ["sector"])),
+            sector_id: locationIds.sectorId,
+            cell: textValue(attributeValue(attributes, ["cell"])),
+            cell_id: locationIds.cellId,
+            village: textValue(attributeValue(attributes, ["village"])),
+            village_id: null,
+            upi: returnedUpi,
+            parcel_number: parcelNumber,
+            parcel_size_m2: numberValue(attributeValue(attributes, ["size"])),
+            wetland_area_m2: numberValue(attributeValue(attributes, ["area_in_wetland"])),
+            last_updated_on: numberValue(attributeValue(attributes, ["last_updated_on"])),
+            source_type: "cadastral-parcel",
+            source_label: "National Land Authority · LAIS Bugesera_Parcels FeatureServer (source last edited 23 Oct 2026; reuse permission pending)",
+            source_provider: "bugesera"
+          }
+        };
+      }
+
+      const district = textValue(attributeValue(attributes, ["district", "district_name"]));
+      if (!district || !KIGALI_DISTRICTS.includes(district.toUpperCase() as (typeof KIGALI_DISTRICTS)[number])) {
+        return null;
+      }
+      const parcelNumber = textValue(attributeValue(attributes, ["parcel_number", "parcelnumber"]));
+      const objectId = textValue(attributeValue(attributes, ["objectid", "fid", "id"]));
+      return {
+        type: "Feature" as const,
+        id: "parcel-kigali-" + (objectId ?? returnedUpi ?? parcelNumber ?? index),
+        geometry,
+        properties: {
+          province: textValue(attributeValue(attributes, ["province"])) ?? "Kigali City",
+          province_id: null,
+          district,
+          district_id: null,
+          sector: textValue(attributeValue(attributes, ["sector"])),
+          sector_id: null,
+          cell: textValue(attributeValue(attributes, ["cell"])),
+          cell_id: null,
+          village: textValue(attributeValue(attributes, ["village"])),
+          village_id: null,
+          upi: returnedUpi,
+          parcel_number: parcelNumber,
+          parcel_size_m2: numberValue(attributeValue(attributes, ["size"])),
+          wetland_area_m2: numberValue(attributeValue(attributes, ["area_in_wetland"])),
+          last_updated_on: numberValue(attributeValue(attributes, ["last_updated_on"])),
+          source_type: "cadastral-parcel",
+          source_label: "City of Kigali Master Plan · Kigali Parcels layer (1 June 2026)",
+          source_provider: "kigali"
+        }
+      };
+    }).filter((feature): feature is NonNullable<typeof feature> => feature !== null)
+  );
+
+  const failedProviders = results.filter((result) => result.failed).map((result) => result.provider.id);
+  if (features.length > 1) {
+    return Response.json(
+      {
+        error: "More than one cadastral record returned for this UPI. Do not assume which record is current.",
+        dataStatus: "ambiguous",
+        upi,
+        matches: features.map((feature) => ({
+          source: feature.properties.source_provider,
+          district: feature.properties.district,
+          parcelNumber: feature.properties.parcel_number
+        }))
+      },
+      { status: 409, headers: { "Cache-Control": "no-store" } }
+    );
+  }
+
+  if (features.length === 0 && failedProviders.length > 0) {
+    return Response.json(
+      {
+        error: "One or more official parcel sources could not be checked. The UPI lookup is incomplete.",
+        dataStatus: "source_unavailable",
+        upi,
+        unavailableProviders: failedProviders
+      },
+      {
+        status: 502,
+        headers: { "Cache-Control": "no-store" }
+      }
+    );
+  }
+
+  if (features.length === 0) {
+    return Response.json(
+      {
+        error: "No matching cadastral parcel record was found in the connected Kigali or Bugesera sources.",
+        dataStatus: "not_found",
+        upi
+      },
+      { status: 404, headers: { "Cache-Control": "no-store" } }
+    );
+  }
+
+  return Response.json(
+    { type: "FeatureCollection", features, dataStatus: "found", upi },
+    {
+      headers: {
+        "Cache-Control": "no-store",
+        "X-Data-Source": "City of Kigali Master Plan Kigali Parcels and National Land Authority LAIS Bugesera_Parcels",
+        "X-Parcel-Lookup": "Exact UPI match",
+        "X-Parcel-Provider-Warning": failedProviders.length
+          ? "The parcel was found, but these additional provider(s) could not be checked: " + failedProviders.join(", ")
+          : "A cadastral record is not proof of current registered ownership, encumbrances, seller authority or legal title."
+      }
+    }
+  );
+}
+
 export async function GET(request: Request): Promise<Response> {
   const requestUrl = new URL(request.url);
   const rawLevel = requestUrl.searchParams.get("level");
@@ -1361,6 +1535,22 @@ export async function GET(request: Request): Promise<Response> {
     );
   }
   const sourceFilter = rawSource as "kigali" | "bugesera" | null;
+  const rawUpi = requestUrl.searchParams.get("upi");
+  if (rawUpi !== null) {
+    if (level !== "parcel") {
+      return Response.json({ error: "upi can only be used with level=parcel" }, { status: 400 });
+    }
+    const upi = rawUpi.trim();
+    // Rwanda UPI structure: five slash-separated numeric components.
+    // This strict format also prevents SQL syntax from entering the provider query.
+    if (!/^\\d+(?:\\/\\d+){4}$/.test(upi)) {
+      return Response.json(
+        { error: "Enter a valid Rwanda UPI with five numeric components, separated by slashes.", dataStatus: "invalid_upi" },
+        { status: 400 }
+      );
+    }
+    return getParcelByUpi(upi, sourceFilter ?? undefined);
+  }
   const hasBounds = requestUrl.searchParams.has("bbox");
   const bounds = parseBounds(requestUrl.searchParams.get("bbox"));
   if (!bounds) {
