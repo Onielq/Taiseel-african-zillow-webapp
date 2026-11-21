@@ -185,8 +185,8 @@ export default function MapApp() {
 
   const submitParcelUpiSearch = useCallback((event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const upi = upiQuery.trim().replace(/\\s+/g, "");
-    if (!/^\\d+(?:\\/\\d+){4}$/.test(upi)) {
+    const upi = upiQuery.trim().replace(/\s+/g, "");
+    if (!/^\d+(?:\/\d+){4}$/.test(upi)) {
       setUpiSearchStatus({
         state: "error",
         upi,
