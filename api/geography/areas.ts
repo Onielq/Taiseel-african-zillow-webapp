@@ -1358,7 +1358,7 @@ async function getParcelByUpi(
         provider.extent,
         5,
         "upi = '" + upi + "'",
-        "upi,province,district,sector,cell,village,parcel_number,size,area_in_wetland,last_updated_on,objectid,fid",
+        "upi,province,district,sector,cell,village,parcel_number,size,area_in_wetland,last_updated_on",
         0,
         15_000,
         false
