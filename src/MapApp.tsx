@@ -9,6 +9,7 @@ import {
   type ParcelSearchFilters,
   type ParcelInventoryStats,
   EMPTY_PARCEL_SEARCH_FILTERS,
+  parcelPriceTypeLabel,
   type SelectedArea
 } from "./components/map/MapView";
 import type { RwandaProjectRecord } from "./data/project-directory";
@@ -43,6 +44,23 @@ const DRAW_SOURCE = "taiseel-drawn-boundary";
 const DRAW_LINE = "taiseel-drawn-boundary-line";
 const DRAW_FILL = "taiseel-drawn-boundary-fill";
 const EMPTY_FEATURES: FeatureCollection = { type: "FeatureCollection", features: [] };
+
+function formatRwf(value: number): string {
+  return "RWF " + Math.round(value).toLocaleString("en");
+}
+
+function zoningStatusLabel(status: SelectedArea["zoningStatus"]): string {
+  switch (status) {
+    case "found": return "Matched in published planning data";
+    case "not-covered": return "No zoning record published for this parcel";
+    case "ambiguous": return "Overlapping records need review";
+    case "error": return "The planning source returned an error";
+    case "unavailable": return "Planning data is unavailable";
+    case "loading": return "Planning data is loading";
+    default: return "No parcel-level zoning result is available";
+  }
+}
+
 
 function notifyParent(event: ParentEvent) {
   if (window.parent !== window) window.parent.postMessage(event, window.location.origin);
@@ -121,6 +139,7 @@ export default function MapApp() {
   const [showZoning, setShowZoning] = useState(false);
   const [parcelFilters, setParcelFilters] = useState<ParcelSearchFilters>(EMPTY_PARCEL_SEARCH_FILTERS);
   const [selectedArea, setSelectedArea] = useState<SelectedArea | null>(null);
+  const [propertyProfileOpen, setPropertyProfileOpen] = useState(false);
   const [basemapStatus, setBasemapStatus] = useState<BasemapStatus>("loading");
   const [boundaryStatus, setBoundaryStatus] = useState<BoundaryStatus>("loading");
   const [drawing, setDrawing] = useState(false);
@@ -147,6 +166,7 @@ export default function MapApp() {
 
   const onAreaSelected = useCallback((area: SelectedArea | null) => {
     setSelectedArea(area);
+    setPropertyProfileOpen(false);
     notifyParent(selectedAreaEvent(area));
   }, []);
 
@@ -311,8 +331,136 @@ export default function MapApp() {
           ) : (
             <small>Administrative boundary · Not proof of parcel title or ownership</small>
           )}
+          {selectedArea.level === "parcel" ? (
+            <button
+              type="button"
+              className="map-selection-report"
+              onClick={() => setPropertyProfileOpen(true)}
+            >
+              View connected property profile
+            </button>
+          ) : null}
           <button type="button" className="map-selection-close" onClick={() => onAreaSelected(null)} aria-label="Clear selected area">×</button>
         </section>
+      )}
+      {propertyProfileOpen && selectedArea?.level === "parcel" && (
+        <aside className="property-intelligence-panel" aria-label="Connected property profile">
+          <header className="property-intelligence-header">
+            <div>
+              <span className="property-intelligence-eyebrow">One connected property profile</span>
+              <h2>{selectedArea.name}</h2>
+              <p>{areaPath || selectedArea.district}</p>
+            </div>
+            <button
+              type="button"
+              className="property-intelligence-close"
+              onClick={() => setPropertyProfileOpen(false)}
+              aria-label="Close property profile"
+            >×</button>
+          </header>
+
+          <div className="property-intelligence-identity">
+            <span>Parcel identity</span>
+            <strong>{selectedArea.upi ? "UPI " + selectedArea.upi : "UPI not supplied by source"}</strong>
+            <small>
+              {selectedArea.parcelSizeM2
+                ? selectedArea.parcelSizeM2.toLocaleString("en") + " m² · " +
+                  (selectedArea.parcelSizeSource === "cadastral-attribute"
+                    ? "cadastral size attribute"
+                    : selectedArea.parcelSizeSource === "geometry-estimate"
+                      ? "geometry-derived estimate"
+                      : "size basis not supplied")
+                : "Parcel size not supplied"}
+            </small>
+          </div>
+
+          <section className="property-intelligence-layer">
+            <div className="property-intelligence-layer-kicker">01 · SINGAPORE MODEL</div>
+            <h3>Land Intelligence</h3>
+            <div className="property-intelligence-facts">
+              <div><span>Location</span><strong>{areaPath || selectedArea.district}</strong></div>
+              <div><span>Parcel record</span><strong>{selectedArea.sourceLabel || "Source not supplied"}</strong></div>
+              <div><span>Planning status</span><strong>{zoningStatusLabel(selectedArea.zoningStatus)}</strong></div>
+              {selectedArea.zoning?.length ? (
+                <div className="property-intelligence-zones">
+                  <span>Published zoning records</span>
+                  {selectedArea.zoning.map((entry, index) => (
+                    <div key={(entry.code ?? entry.name) + "-" + index}>
+                      <strong>{entry.code ? entry.code + " · " : ""}{entry.name}</strong>
+                      {entry.condition ? <small>Condition: {entry.condition}</small> : null}
+                      {entry.prohibited ? <small>Prohibited: {entry.prohibited}</small> : null}
+                      {entry.buffer ? <small>Buffer: {entry.buffer}</small> : null}
+                    </div>
+                  ))}
+                  {selectedArea.zoningSource ? <small>Planning source: {selectedArea.zoningSource}</small> : null}
+                </div>
+              ) : null}
+              <div>
+                <span>Wetland overlap</span>
+                <strong>
+                  {typeof selectedArea.wetlandAreaM2 === "number"
+                    ? selectedArea.wetlandAreaM2 > 0
+                      ? selectedArea.wetlandAreaM2.toLocaleString("en") + " m² reported by source"
+                      : "No overlap reported by source"
+                    : "Not supplied"}
+                </strong>
+              </div>
+            </div>
+            <p className="property-intelligence-note">
+              This mapped parcel record does not confirm current registered ownership, encumbrances,
+              seller authority or legal title. Those checks require current official records.
+            </p>
+          </section>
+
+          <section className="property-intelligence-layer">
+            <div className="property-intelligence-layer-kicker">02 · DUBAI MODEL</div>
+            <h3>Development and Regulatory Intelligence</h3>
+            <div className="property-intelligence-status">Parcel-linked development records: Not connected</div>
+            <p className="property-intelligence-note">
+              Approved projects, developer registration, project approvals, off-plan registration
+              and escrow information are not yet linked to this parcel in Taiseel. This is not
+              evidence that no approval, project or planning restriction exists.
+            </p>
+          </section>
+
+          <section className="property-intelligence-layer">
+            <div className="property-intelligence-layer-kicker">03 · UNITED STATES MODEL</div>
+            <h3>Marketplace and Market Intelligence</h3>
+            <div className="property-intelligence-facts">
+              {typeof selectedArea.parcelPriceValue === "number" && selectedArea.parcelPriceValue > 0 ? (
+                <div>
+                  <span>{selectedArea.parcelPriceType ? parcelPriceTypeLabel(selectedArea.parcelPriceType) : "Parcel price reference"}</span>
+                  <strong>{formatRwf(selectedArea.parcelPriceValue)}</strong>
+                  {selectedArea.parcelPriceSource ? <small>{selectedArea.parcelPriceSource}</small> : null}
+                  {selectedArea.parcelPriceNote ? <small>{selectedArea.parcelPriceNote}</small> : null}
+                </div>
+              ) : (
+                <div><span>Parcel-specific price</span><strong>Not available from the connected sources</strong></div>
+              )}
+              {typeof selectedArea.averageLandPricePerM2 === "number" ? (
+                <div>
+                  <span>Area reference price per m²</span>
+                  <strong>{formatRwf(selectedArea.averageLandPricePerM2)} / m²</strong>
+                  <small>{selectedArea.averageLandPriceKind || "Area-level land price reference; not a parcel valuation"}</small>
+                  {typeof selectedArea.averageLandPriceSampleSize === "number" ? (
+                    <small>Source observations: {selectedArea.averageLandPriceSampleSize}</small>
+                  ) : null}
+                </div>
+              ) : null}
+              <div><span>Linked property listing</span><strong>Not connected to this parcel</strong></div>
+              <div><span>Comparable listings and verified sale history</span><strong>Not available in this profile yet</strong></div>
+            </div>
+            <p className="property-intelligence-note">
+              A district or area benchmark is not the same as an asking price, completed sale price
+              or formal valuation. Those evidence types must remain separate.
+            </p>
+          </section>
+
+          <footer className="property-intelligence-footer">
+            Taiseel brings these information layers together. This profile is not a title certificate,
+            legal opinion, formal valuation, survey or development approval.
+          </footer>
+        </aside>
       )}
       {drawing && <div className="map-draw-hint">Click to draw a boundary. Double-click to finish.</div>}
       <span className="sr-only" role="status">{basemapStatus === "ready" && isBoundaryReady ? "Map and boundary data ready" : "Map loading"}</span>

@@ -27,6 +27,16 @@ The embedded map uses the MapLibre GL implementation from `Onielq/african-zillow
 
 The map does not establish title or ownership. An administrative polygon is not a parcel. A cadastral polygon is not proof of current registered ownership, encumbrances or survey completeness. Estimated values retain their source and method caveats.
 
+## Connected property profile
+
+Selecting an individual cadastral parcel on the MapLibre map opens the parcel evidence card. The card's **View connected property profile** action brings the three Taiseel intelligence layers together for that parcel:
+
+1. **Land Intelligence (Singapore-inspired):** UPI, mapped parcel identity and size basis, administrative location, source-published zoning and wetland overlap where supplied. It explicitly warns that mapped parcel data is not proof of current registered ownership, title, encumbrances or seller authority.
+2. **Development and Regulatory Intelligence (Dubai-inspired):** a dedicated section for parcel-linked developer, project, approval, off-plan and escrow information. These records are currently not connected to the map, so the profile says **Not connected** rather than implying that no project or approval exists.
+3. **Marketplace and Market Intelligence (US-inspired):** available parcel/area price references retain their source labels and limitations. Linked listings, comparable asking prices and verified sale history are shown as unavailable until real parcel-linked inventory and transaction evidence are connected.
+
+The profile is an integrated consumer view, not a title certificate, legal opinion, formal valuation, survey or development approval. Each layer reports what is present and what remains unverified; unavailable data is never converted into a negative finding.
+
 ## Search page preview listings
 
 Eight sample records cover homes, a rental and land. They are illustrative, not live inventory. The listing cards are still in the supplied HTML scaffold and link to the existing React detail records.

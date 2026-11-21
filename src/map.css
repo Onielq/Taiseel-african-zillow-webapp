@@ -221,3 +221,185 @@ html, body, #map-root {
     bottom: 38px;
   }
 }
+
+
+/* Connected three-layer property intelligence profile */
+.map-selection-report {
+  width: 100%;
+  min-height: 34px;
+  margin-top: 9px;
+  padding: 8px 10px;
+  border: 1px solid #006aff;
+  border-radius: 4px;
+  background: #006aff;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+.map-selection-report:hover { background: #0051cc; }
+.property-intelligence-panel {
+  position: absolute;
+  z-index: 1200;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  width: min(390px, calc(100% - 24px));
+  overflow-y: auto;
+  padding: 16px;
+  border: 1px solid #d8e1dc;
+  border-radius: 6px;
+  background: rgba(255,255,255,.985);
+  color: #202b25;
+  box-shadow: 0 5px 24px rgba(0,0,0,.22);
+}
+.property-intelligence-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8e4;
+}
+.property-intelligence-eyebrow,
+.property-intelligence-layer-kicker {
+  display: block;
+  color: #61756a;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.property-intelligence-header h2 {
+  margin: 6px 0 2px;
+  color: #1e2e25;
+  font-size: 19px;
+  line-height: 1.2;
+}
+.property-intelligence-header p {
+  margin: 0;
+  color: #65756b;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.property-intelligence-close {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f4f2;
+  color: #34463b;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.property-intelligence-identity {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0;
+  padding: 11px;
+  border: 1px solid #dbe5df;
+  border-radius: 4px;
+  background: #f6f9f7;
+}
+.property-intelligence-identity span {
+  color: #65756b;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.property-intelligence-identity strong {
+  color: #1e3026;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.property-intelligence-identity small {
+  color: #68786e;
+  font-size: 9px;
+}
+.property-intelligence-layer {
+  padding: 13px 0;
+  border-top: 1px solid #e2e8e4;
+}
+.property-intelligence-layer h3 {
+  margin: 5px 0 10px;
+  color: #1f3026;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.property-intelligence-facts {
+  display: grid;
+  gap: 8px;
+}
+.property-intelligence-facts > div {
+  display: grid;
+  gap: 3px;
+  padding: 8px 9px;
+  border: 1px solid #e5ebe7;
+  border-radius: 4px;
+  background: #fff;
+}
+.property-intelligence-facts > div > span {
+  color: #6c7b72;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.property-intelligence-facts strong {
+  color: #293c31;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.property-intelligence-facts small {
+  color: #69786f;
+  font-size: 9px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.property-intelligence-zones {
+  display: grid;
+  gap: 6px;
+}
+.property-intelligence-zones > div {
+  display: grid;
+  gap: 3px;
+  padding: 7px;
+  border-radius: 3px;
+  background: #f5f8f6;
+}
+.property-intelligence-status {
+  padding: 9px 10px;
+  border: 1px solid #e6e1d5;
+  border-radius: 4px;
+  background: #faf8f2;
+  color: #625637;
+  font-size: 10px;
+  font-weight: 700;
+}
+.property-intelligence-note {
+  margin: 9px 0 0;
+  color: #627168;
+  font-size: 9px;
+  line-height: 1.55;
+}
+.property-intelligence-footer {
+  margin-top: 4px;
+  padding: 12px 0 2px;
+  border-top: 1px solid #e2e8e4;
+  color: #65756b;
+  font-size: 9px;
+  line-height: 1.55;
+}
+@media (max-width: 600px) {
+  .property-intelligence-panel {
+    top: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: calc(100% - 16px);
+    padding: 13px;
+  }
+}
