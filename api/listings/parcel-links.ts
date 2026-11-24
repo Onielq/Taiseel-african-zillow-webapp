@@ -125,8 +125,8 @@ export async function GET(request: Request): Promise<Response> {
     let rows: PublicLinkRow[];
 
     if (hasListingLookup) {
-      rows = await sql<PublicLinkRow>\`
-        SELECT
+      rows = await sql.query(
+        `SELECT
           id,
           listing_source,
           listing_source_id,
@@ -142,14 +142,15 @@ export async function GET(request: Request): Promise<Response> {
         FROM public.listing_parcel_links
         WHERE status = 'verified'
           AND upi_check_status = 'matched'
-          AND listing_source = \${source}
-          AND listing_source_id = \${listingId}
+          AND listing_source = $1
+          AND listing_source_id = $2
         ORDER BY verified_at DESC
-        LIMIT \${parsedLimit}
-      \`;
+        LIMIT $3`,
+        [source, listingId, parsedLimit]
+      ) as PublicLinkRow[];
     } else {
-      rows = await sql<PublicLinkRow>\`
-        SELECT
+      rows = await sql.query(
+        `SELECT
           id,
           listing_source,
           listing_source_id,
@@ -165,10 +166,11 @@ export async function GET(request: Request): Promise<Response> {
         FROM public.listing_parcel_links
         WHERE status = 'verified'
           AND upi_check_status = 'matched'
-          AND parcel_upi = \${upi}
+          AND parcel_upi = $1
         ORDER BY verified_at DESC
-        LIMIT \${parsedLimit}
-      \`;
+        LIMIT $2`,
+        [upi, parsedLimit]
+      ) as PublicLinkRow[];
     }
 
     return json({
