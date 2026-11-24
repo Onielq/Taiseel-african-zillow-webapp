@@ -125,7 +125,7 @@ export async function GET(request: Request): Promise<Response> {
     let rows: PublicLinkRow[];
 
     if (hasListingLookup) {
-      rows = await sql<PublicLinkRow[]>\`
+      rows = await sql<PublicLinkRow>\`
         SELECT
           id,
           listing_source,
@@ -148,7 +148,7 @@ export async function GET(request: Request): Promise<Response> {
         LIMIT \${parsedLimit}
       \`;
     } else {
-      rows = await sql<PublicLinkRow[]>\`
+      rows = await sql<PublicLinkRow>\`
         SELECT
           id,
           listing_source,
