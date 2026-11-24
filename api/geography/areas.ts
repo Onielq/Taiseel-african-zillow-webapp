@@ -1346,10 +1346,11 @@ async function getParcelByUpi(
   upi: string,
   sourceFilter: "kigali" | "bugesera" | undefined
 ): Promise<Response> {
-  const providers: ParcelProvider[] = [
+  const allProviders: ParcelProvider[] = [
     { id: "kigali", layerUrl: KIGALI_PARCEL_FEATURE_LAYER, extent: KIGALI_PARCEL_EXTENT },
     { id: "bugesera", layerUrl: BUGESERA_PARCEL_FEATURE_LAYER, extent: BUGESERA_PARCEL_EXTENT }
-  ].filter((provider) => !sourceFilter || provider.id === sourceFilter);
+  ];
+  const providers = allProviders.filter((provider) => !sourceFilter || provider.id === sourceFilter);
 
   const results = await Promise.all(providers.map(async (provider) => {
     try {

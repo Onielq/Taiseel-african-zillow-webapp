@@ -48,13 +48,36 @@ Selecting an individual cadastral parcel on the MapLibre map opens the parcel ev
 
 The profile is an integrated consumer view, not a title certificate, legal opinion, formal valuation, survey or development approval. Each layer reports what is present and what remains unverified; unavailable data is never converted into a negative finding.
 
+## Verified listing-to-parcel links
+
+The `public.listing_parcel_links` table records three separate things:
+
+- The listing identity and exact five-part UPI asserted by a lister, including the lister's attestation.
+- A separate check that the UPI exists in a connected cadastral source.
+- Independent evidence and reviewer identity for the relationship between the listing and the parcel.
+
+A cadastral UPI match alone does **not** prove that the listing is on that parcel. A record can become `verified` only after relationship evidence, reviewer identity, and organisation details are present. The database rejects a verified status without those requirements.
+
+Lister and reviewer identities use canonical internal principal IDs. `platform_principal_identities` maps verified identity-provider subjects to those principals, so multiple sign-in identities can resolve to one person. The database requires the reviewer principal to differ from the lister principal. The public API database role can read the link table but is explicitly denied access to the principal and identity tables.
+
+The public read-only endpoint is `GET /api/listings/parcel-links`. Use exactly one lookup form:
+
+- `?source=partner_slug&listingId=external-listing-id`
+- `?upi=5/07/08/01/936`
+
+It returns only rows where both the relationship status is `verified` and the cadastral check is `matched`. It never returns evidence references, reviewer notes, lister identity, or pending claims. It does not infer associations from address text or map proximity.
+
+The API uses a dedicated Neon read-only database role. The submission and review workflows are not yet exposed because this project does not yet have an authenticated lister/reviewer identity system or an approved inventory feed. No illustrative preview listing is connected to a real parcel. Do not remove the sample-data notice or claim that the marketplace has live listings until those integrations are approved and connected.
+
+The schema migrations are tracked in `db/migrations/20261124_001_listing_parcel_links.sql`, `db/migrations/20261124_002_canonical_principals.sql`, and `db/migrations/20261124_003_restrict_identity_table_access.sql`.
+
 ## Search page preview listings
 
 Eight sample records cover homes, a rental and land. They are illustrative, not live inventory. The listing cards are still in the supplied HTML scaffold and link to the existing React detail records.
 
 ## Stack and commands
 
-React 19, TypeScript, Vite, MapLibre GL, Leaflet (retained in the previous React prototype code), and Playwright Test.
+React 19, TypeScript, Vite, MapLibre GL, Leaflet (retained in the previous React prototype code), Neon Postgres, and Playwright Test.
 
 ```bash
 npm install
@@ -71,8 +94,9 @@ The MapLibre worker modules are copied to `public/vendor/maplibre-gl/<version>/`
 - `/api/geography/areas`: administrative polygons and cadastral parcels.
 - `/api/geography/places`: optional nearby-place overlays.
 - `/api/geography/zoning`: optional planning/zoning overlays.
+- `/api/listings/parcel-links`: verified listing-to-parcel relationships only.
 
-The Vite development server does not implement serverless functions; browser E2E tests stub these routes with explicitly synthetic fixtures. Vercel serves the standard Web Request/Response handlers from the root `api/` directory and must be checked independently in the preview deployment.
+The Vite development server does not implement Vercel serverless functions; browser E2E tests stub geography routes with explicitly synthetic fixtures. Vercel serves the standard Web Request/Response handlers from the root `api/` directory and must be checked independently in the preview deployment.
 
 ## Source and adaptation boundary
 
