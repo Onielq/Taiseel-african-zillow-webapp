@@ -58,6 +58,8 @@ The `public.listing_parcel_links` table records three separate things:
 
 A cadastral UPI match alone does **not** prove that the listing is on that parcel. A record can become `verified` only after relationship evidence, reviewer identity, and organisation details are present. The database rejects a verified status without those requirements.
 
+Lister and reviewer identities use canonical internal principal IDs. `platform_principal_identities` maps verified identity-provider subjects to those principals, so multiple sign-in identities can resolve to one person. The database requires the reviewer principal to differ from the lister principal. The public API database role can read the link table but is explicitly denied access to the principal and identity tables.
+
 The public read-only endpoint is `GET /api/listings/parcel-links`. Use exactly one lookup form:
 
 - `?source=partner_slug&listingId=external-listing-id`
@@ -67,7 +69,7 @@ It returns only rows where both the relationship status is `verified` and the ca
 
 The API uses a dedicated Neon read-only database role. The submission and review workflows are not yet exposed because this project does not yet have an authenticated lister/reviewer identity system or an approved inventory feed. No illustrative preview listing is connected to a real parcel. Do not remove the sample-data notice or claim that the marketplace has live listings until those integrations are approved and connected.
 
-The schema migration is tracked in `db/migrations/20261124_001_listing_parcel_links.sql`.
+The schema migrations are tracked in `db/migrations/20261124_001_listing_parcel_links.sql`, `db/migrations/20261124_002_canonical_principals.sql`, and `db/migrations/20261124_003_restrict_identity_table_access.sql`.
 
 ## Search page preview listings
 
